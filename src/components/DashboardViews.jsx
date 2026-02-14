@@ -1,0 +1,274 @@
+import React from 'react';
+import { 
+  ArrowUpCircle, 
+  ArrowDownCircle, 
+  Wallet, 
+  Users, 
+  Plus, 
+  FileSpreadsheet, 
+  Upload, 
+  Download,
+  LogOut,
+  RefreshCw,
+  User,
+  Trash2,
+  UserCog
+} from 'lucide-react';
+import { Card, Button, Badge, Input } from './common';
+
+export const DashboardView = ({ stats, formatCurrency }) => (
+  <div className="space-y-6 pb-20">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Card className="bg-gradient-to-br from-blue-600 to-blue-800 text-white border-none">
+        <div className="p-5">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-blue-100 text-sm font-medium mb-1">Total Issued Today</p>
+              <h2 className="text-3xl font-bold">{formatCurrency(stats.issuedToday)}</h2>
+            </div>
+            <div className="p-2 bg-white/20 rounded-lg">
+              <ArrowUpCircle className="w-6 h-6 text-white" />
+            </div>
+          </div>
+          <p className="text-xs text-blue-200 mt-4 opacity-80">Today, {new Date().toLocaleDateString()}</p>
+        </div>
+      </Card>
+      <Card className="bg-white">
+        <div className="p-5">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-slate-500 text-sm font-medium mb-1">Repaid Today</p>
+              <h2 className="text-3xl font-bold text-emerald-600">{formatCurrency(stats.returnedToday)}</h2>
+            </div>
+            <div className="p-2 bg-emerald-100 rounded-lg">
+              <ArrowDownCircle className="w-6 h-6 text-emerald-600" />
+            </div>
+          </div>
+           <div className="mt-4 w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+            <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${stats.issuedToday > 0 ? (stats.returnedToday / stats.issuedToday) * 100 : 0}%` }}></div>
+          </div>
+        </div>
+      </Card>
+      <Card className="bg-slate-900 text-white border-none">
+        <div className="p-5">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-slate-300 text-sm font-medium mb-1">Total Team Debt</p>
+              <h2 className={`text-3xl font-bold ${stats.totalOutstanding > 0 ? 'text-amber-400' : 'text-white'}`}>
+                {formatCurrency(stats.totalOutstanding)}
+              </h2>
+            </div>
+            <div className="p-2 bg-slate-800 rounded-lg">
+              <Wallet className="w-6 h-6 text-amber-400" />
+            </div>
+          </div>
+          <p className="text-xs text-slate-400 mt-4">
+            {stats.totalOutstanding === 0 ? "Zero Leakage. All Clear! ✅" : "Includes previous days' shortages"}
+          </p>
+        </div>
+      </Card>
+    </div>
+  </div>
+);
+
+export const AgentsView = ({ agents, agentBalances, openModal, fileInputRef, handleFileUpload, downloadTemplate, formatCurrency }) => (
+  <div className="space-y-6 pb-20">
+     <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+      <h2 className="text-2xl font-bold text-slate-800">My Agents</h2>
+      <div className="flex gap-2">
+          <input type="file" accept=".csv" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+          <Button variant="secondary" onClick={downloadTemplate} icon={FileSpreadsheet} className="text-xs">Template</Button>
+          <Button variant="outline" onClick={() => fileInputRef.current.click()} icon={Upload} className="text-xs">Import CSV</Button>
+          <Button onClick={() => openModal('add_agent')} icon={Plus} className="text-xs">Add Agent</Button>
+      </div>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {agents.map(agent => {
+        const bal = agentBalances[agent.id] || { issuedToday: 0, returnedToday: 0, prevDebt: 0, totalDue: 0 };
+
+        return (
+          <Card key={agent.id} className="p-4 relative group">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold">
+                {agent.name.charAt(0)}
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800">{agent.name}</h3>
+                <p className="text-sm text-slate-500">{agent.location}</p>
+                <p className="text-xs text-slate-400 mt-1">{agent.phone}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-sm">
+               <div>
+                 <p className="text-xs text-slate-400 uppercase">Balance</p>
+                 <p className={`font-bold ${bal.totalDue > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{formatCurrency(bal.totalDue)}</p>
+               </div>
+               <div className="flex gap-2">
+                 {bal.totalDue === 0 ? (
+                    <Button variant="primary" className="py-1.5 px-3 text-xs" onClick={() => openModal('issue', agent.id)}>Issue</Button>
+                  ) : (
+                    <Button variant="success" className="py-1.5 px-3 text-xs" onClick={() => openModal('return', agent.id)}>Return</Button>
+                  )}
+               </div>
+            </div>
+          </Card>
+        );
+      })}
+      {agents.length === 0 && (
+        <div className="col-span-1 md:col-span-2 text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
+          <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-500">You haven't added any agents yet.</p>
+          <button onClick={() => openModal('add_agent')} className="text-blue-600 font-bold text-sm mt-2 hover:underline">Add your first agent</button>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCurrency, today, PROVIDERS }) => (
+  <div className="space-y-6 pb-20">
+    <div className="flex justify-between items-center">
+      <h2 className="text-2xl font-bold text-slate-800">Daily Reconciliation</h2>
+      <Button variant="outline" icon={Download} onClick={() => window.print()}>Print / PDF</Button>
+    </div>
+
+    <Card className="overflow-x-auto">
+      <table className="w-full text-sm text-left">
+        <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b">
+          <tr>
+            <th className="px-6 py-3">Agent</th>
+            <th className="px-6 py-3 text-right text-red-600">Prev. Debt</th>
+            <th className="px-6 py-3 text-right">Issued Today</th>
+            <th className="px-6 py-3 text-right text-emerald-600">Repaid Today</th>
+            <th className="px-6 py-3 text-right font-bold">Total Outstanding</th>
+            <th className="px-6 py-3 text-center">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {agents.map(agent => {
+             const bal = agentBalances[agent.id] || { issuedToday: 0, returnedToday: 0, prevDebt: 0, totalDue: 0 };
+             return (
+               <tr key={agent.id} className="bg-white border-b hover:bg-slate-50">
+                 <td className="px-6 py-4 font-medium text-slate-900">{agent.name}</td>
+                 <td className="px-6 py-4 text-right text-red-500">{formatCurrency(bal.prevDebt)}</td>
+                 <td className="px-6 py-4 text-right text-slate-600">{formatCurrency(bal.issuedToday)}</td>
+                 <td className="px-6 py-4 text-right text-emerald-600 font-bold">{formatCurrency(bal.returnedToday)}</td>
+                 <td className={`px-6 py-4 text-right font-bold ${bal.totalDue > 0 ? 'text-red-700' : 'text-slate-400'}`}>
+                   {formatCurrency(bal.totalDue)}
+                 </td>
+                 <td className="px-6 py-4 text-center">
+                   {bal.totalDue === 0 ? <Badge color="green">Cleared</Badge> : <Badge color="red">Owing</Badge>}
+                 </td>
+               </tr>
+             )
+          })}
+        </tbody>
+      </table>
+    </Card>
+
+    <h3 className="text-lg font-bold text-slate-800 mt-8">Today's Transactions ({today})</h3>
+    <div className="space-y-2">
+      {todaysTransactions.length === 0 && <p className="text-slate-500 italic">No transactions recorded today.</p>}
+      {todaysTransactions.slice().reverse().map(t => {
+        const provider = PROVIDERS.find(p => p.id === t.method) || PROVIDERS[0];
+        const ProviderIcon = provider.icon;
+        const isCheckout = t.category === 'checkout';
+
+        return (
+          <div key={t.id} className="flex justify-between items-center bg-white p-3 rounded border border-slate-200 text-sm">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-full ${t.type === 'issue' ? 'bg-blue-100 text-blue-600' : t.category === 'checkout' ? 'bg-purple-100 text-purple-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                {t.type === 'issue' ? <ArrowUpCircle className="w-4 h-4"/> : isCheckout ? <LogOut className="w-4 h-4"/> : <RefreshCw className="w-4 h-4"/>}
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="font-semibold text-slate-700">
+                    {agents.find(a => a.id === t.agentId)?.name || 'Unknown'}
+                  </p>
+                  {t.type === 'return' && (
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold border ${isCheckout ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                          {isCheckout ? 'Float Return' : 'Loan Repayment'}
+                      </span>
+                  )}
+                  <span className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold border ${provider.colorClass}`}>
+                    <ProviderIcon className="w-3 h-3"/>
+                    {provider.label}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <span>{new Date(t.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1"><User className="w-3 h-3" /> {t.performedBy || 'Unknown'}</span>
+                  {t.note && <span>• {t.note}</span>}
+                </div>
+              </div>
+            </div>
+            <span className={`font-bold ${t.type === 'issue' ? 'text-slate-700' : 'text-emerald-600'}`}>
+              {t.type === 'issue' ? '-' : '+'}{formatCurrency(t.amount)}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+);
+
+export const OperatorsView = ({ 
+  newOpName, 
+  setNewOpName, 
+  newOpPass, 
+  setNewOpPass, 
+  handleAddOperator, 
+  operators, 
+  handleDeleteOperator 
+}) => {
+  return (
+    <div className="space-y-6 pb-20">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-slate-800">Manage Operators</h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-blue-100 p-2 rounded-full text-blue-600"><UserCog className="w-6 h-6" /></div>
+            <div>
+                <h3 className="text-lg font-bold text-slate-800">Create Operator</h3>
+                <p className="text-xs text-slate-500">Add staff to help manage float</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <Input label="Username" value={newOpName} onChange={e => setNewOpName(e.target.value)} placeholder="e.g. fatou_staff" />
+            <Input label="Password" type="password" value={newOpPass} onChange={e => setNewOpPass(e.target.value)} placeholder="Secret123" />
+            <Button onClick={handleAddOperator} className="w-full">Create Operator</Button>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <h3 className="text-lg font-bold text-slate-800 mb-4">Existing Operators</h3>
+          {operators.length === 0 ? (
+            <p className="text-slate-500 italic text-sm">No operators created yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {operators.map(op => (
+                <div key={op.id} className="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold text-xs">
+                      {op.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm text-slate-800">{op.username}</p>
+                      <p className="text-xs text-slate-400">Staff Access</p>
+                    </div>
+                  </div>
+                  <button onClick={() => handleDeleteOperator(op.id)} className="text-slate-400 hover:text-red-500 p-2"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+};
