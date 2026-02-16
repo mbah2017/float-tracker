@@ -33,9 +33,13 @@ export const Dashboard = ({ user, onLogout }) => {
     agents,
     setAgents,
     todaysTransactions,
+    reportTransactions,
     agentBalances,
+    reportBalances,
     stats,
     today,
+    reportDate,
+    setReportDate,
     addAgent,
     addTransaction,
     currentLiquidity,
@@ -303,7 +307,19 @@ Served by: ${user.username}`;
 
         <main className="flex-1">
           {activeTab === 'dashboard' && <DashboardView stats={stats} formatCurrency={formatCurrency} activeBalance={activeBalance} />}
-          {activeTab === 'reports' && <ReportView agents={agents} agentBalances={agentBalances} todaysTransactions={todaysTransactions} formatCurrency={formatCurrency} today={today} PROVIDERS={PROVIDERS} settings={settings} setSettings={setSettings} />}
+          {activeTab === 'reports' && (
+            <ReportView 
+              agents={agents} 
+              agentBalances={reportBalances} 
+              todaysTransactions={reportTransactions} 
+              formatCurrency={formatCurrency} 
+              today={reportDate} 
+              setReportDate={setReportDate}
+              PROVIDERS={PROVIDERS} 
+              settings={settings} 
+              setSettings={setSettings} 
+            />
+          )}
           {activeTab === 'liquidity' && (
             <LiquidityView 
               currentLiquidity={currentLiquidity} 

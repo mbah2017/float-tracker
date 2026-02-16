@@ -306,7 +306,7 @@ export const AgentsView = ({ agents, agentBalances, openModal, fileInputRef, han
   </div>
 );
 
-export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCurrency, today, PROVIDERS, settings, setSettings }) => {
+export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCurrency, today, setReportDate, PROVIDERS, settings, setSettings }) => {
   const [viewMode, setViewMode] = useState('summary'); // 'summary' or 'cashbook'
   const [isEditingTitle, setIsEditingTitle] = useState(false);
 
@@ -328,7 +328,13 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
         <h2 className="text-2xl font-bold text-slate-800">
           {viewMode === 'summary' ? 'Daily Reconciliation' : 'Cashbook Report'}
         </h2>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <input 
+            type="date" 
+            className="px-3 py-1 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={today}
+            onChange={(e) => setReportDate(e.target.value)}
+          />
           <div className="flex bg-slate-200 rounded-lg p-1">
             <button 
               onClick={() => setViewMode('summary')}
@@ -383,7 +389,7 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
             </table>
           </Card>
 
-          <h3 className="text-lg font-bold text-slate-800 mt-8 print:hidden">Today's Transactions ({today})</h3>
+          <h3 className="text-lg font-bold text-slate-800 mt-8 print:hidden">Transactions for {today}</h3>
           <div className="space-y-2 print:hidden">
             {todaysTransactions.length === 0 && <p className="text-slate-500 italic">No transactions recorded today.</p>}
             {todaysTransactions.slice().reverse().map(t => {

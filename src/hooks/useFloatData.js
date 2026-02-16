@@ -39,6 +39,7 @@ export const useFloatData = (rootId) => {
   }, [settings, rootId]);
 
   const today = new Date().toISOString().split('T')[0];
+  const [reportDate, setReportDate] = useState(today);
 
   const currentLiquidity = useMemo(() => {
     const defaultLiquidity = {
@@ -86,6 +87,10 @@ export const useFloatData = (rootId) => {
     return transactions.filter(t => t.date === today);
   }, [transactions, today]);
 
+  const reportTransactions = useMemo(() => {
+    return transactions.filter(t => t.date === reportDate);
+  }, [transactions, reportDate]);
+
   const agentBalances = useMemo(() => {
     const balances = {};
     agents.forEach(a => {
@@ -99,7 +104,7 @@ export const useFloatData = (rootId) => {
       if (t.date === today) {
         if (t.type === 'issue') agent.issuedToday += t.amount;
         if (t.type === 'return') agent.returnedToday += t.amount;
-      } else {
+      } else if (t.date < today) {
         if (t.type === 'issue') agent.prevDebt += t.amount;
         if (t.type === 'return') agent.prevDebt -= t.amount;
       }
@@ -112,6 +117,33 @@ export const useFloatData = (rootId) => {
 
     return balances;
   }, [transactions, agents, today]);
+
+  const reportBalances = useMemo(() => {
+    const balances = {};
+    agents.forEach(a => {
+      balances[a.id] = { prevDebt: 0, issuedToday: 0, returnedToday: 0, totalDue: 0 };
+    });
+
+    transactions.forEach(t => {
+      const agent = balances[t.agentId];
+      if (!agent) return;
+
+      if (t.date === reportDate) {
+        if (t.type === 'issue') agent.issuedToday += t.amount;
+        if (t.type === 'return') agent.returnedToday += t.amount;
+      } else if (t.date < reportDate) {
+        if (t.type === 'issue') agent.prevDebt += t.amount;
+        if (t.type === 'return') agent.prevDebt -= t.amount;
+      }
+    });
+
+    Object.values(balances).forEach(b => {
+      b.prevDebt = Math.round(b.prevDebt * 100) / 100;
+      b.totalDue = Math.round((b.prevDebt + b.issuedToday - b.returnedToday) * 100) / 100;
+    });
+
+    return balances;
+  }, [transactions, agents, reportDate]);
 
   const stats = useMemo(() => {
     let issuedToday = 0;
@@ -152,9 +184,13 @@ export const useFloatData = (rootId) => {
     setAgents,
     transactions,
     todaysTransactions,
+    reportTransactions,
     agentBalances,
+    reportBalances,
     stats,
     today,
+    reportDate,
+    setReportDate,
     addAgent,
     addTransaction,
     currentLiquidity,
