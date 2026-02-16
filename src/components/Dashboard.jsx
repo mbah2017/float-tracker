@@ -272,7 +272,7 @@ Served by: ${user.username}`;
       </nav>
 
       <div className="max-w-5xl mx-auto p-4 md:flex md:gap-6 mt-4">
-        <aside className={`fixed inset-y-0 left-0 bg-white w-64 shadow-2xl transform transition-transform duration-200 ease-in-out z-40 md:relative md:transform-none md:shadow-none md:bg-transparent md:w-48 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <aside className={`fixed inset-y-0 left-0 bg-white w-64 shadow-2xl transform transition-transform duration-200 ease-in-out z-40 md:sticky md:top-24 md:transform-none md:shadow-none md:bg-transparent md:w-48 h-fit self-start ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="p-4 md:hidden flex justify-end"><button onClick={() => setSidebarOpen(false)}><X className="w-6 h-6 text-slate-400" /></button></div>
           <div className="space-y-2">
             {[
