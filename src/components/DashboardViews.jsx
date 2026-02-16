@@ -20,7 +20,8 @@ import {
   Lock,
   Unlock,
   AlertTriangle,
-  Scale
+  Scale,
+  CheckCircle2
 } from 'lucide-react';
 import { Card, Button, Badge, Input } from './common';
 
@@ -29,7 +30,11 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
     (new Date() - new Date(currentLiquidity.passiveBalanceLastUpdated)) < (30 * 24 * 60 * 60 * 1000);
 
   const totalOperationalLiquidity = activeBalance + stats.totalOutstanding;
-  const discrepancy = activeBalance - stats.issuedToday;
+  
+  // Correct Accounting Logic:
+  // Expected Balance = Opening Balance + Repayments - Loans Issued
+  const expectedBalance = currentLiquidity.openingBalance + stats.returnedToday - stats.issuedToday;
+  const discrepancy = activeBalance - expectedBalance;
 
   const handleChange = (field, value) => {
     // If input is empty, set to 0 to avoid NaN, otherwise parse the float
@@ -45,23 +50,40 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <Scale className="w-5 h-5 text-blue-600" /> Active Balance Breakdown
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="Cash on Hand" type="number" value={currentLiquidity.cash || ''} onChange={e => handleChange('cash', e.target.value)} icon={Banknote} placeholder="0.00" />
-            <Input label="Bank Account" type="number" value={currentLiquidity.bank || ''} onChange={e => handleChange('bank', e.target.value)} icon={Building2} placeholder="0.00" />
-            <Input label="Wave Wallet" type="number" value={currentLiquidity.wave || ''} onChange={e => handleChange('wave', e.target.value)} icon={Smartphone} placeholder="0.00" />
-            <Input label="APS Wallet" type="number" value={currentLiquidity.aps || ''} onChange={e => handleChange('aps', e.target.value)} icon={Globe} placeholder="0.00" />
-            <Input label="Orange Money" type="number" value={currentLiquidity.orange || ''} onChange={e => handleChange('orange', e.target.value)} icon={Smartphone} placeholder="0.00" />
-            <Input label="NAFA Wallet" type="number" value={currentLiquidity.nafa || ''} onChange={e => handleChange('nafa', e.target.value)} icon={Globe} placeholder="0.00" />
-          </div>
-          <div className="mt-6 p-4 bg-slate-900 text-white rounded-xl">
-            <p className="text-slate-400 text-sm font-medium">Total Active Balance</p>
-            <h2 className="text-3xl font-bold text-white">{formatCurrency(activeBalance)}</h2>
-          </div>
-        </Card>
+        <div className="space-y-6">
+          <Card className="p-6 border-blue-200 bg-blue-50/50">
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <RefreshCw className="w-5 h-5 text-blue-600" /> Day Opening
+            </h3>
+            <Input 
+              label="Opening Balance (Cash + Digital)" 
+              type="number" 
+              value={currentLiquidity.openingBalance || ''} 
+              onChange={e => handleChange('openingBalance', e.target.value)} 
+              icon={Wallet} 
+              placeholder="0.00" 
+            />
+            <p className="text-xs text-slate-500 italic">Enter the total liquidity carried over from yesterday.</p>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <Scale className="w-5 h-5 text-blue-600" /> Active Balance Breakdown
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input label="Cash on Hand" type="number" value={currentLiquidity.cash || ''} onChange={e => handleChange('cash', e.target.value)} icon={Banknote} placeholder="0.00" />
+              <Input label="Bank Account" type="number" value={currentLiquidity.bank || ''} onChange={e => handleChange('bank', e.target.value)} icon={Building2} placeholder="0.00" />
+              <Input label="Wave Wallet" type="number" value={currentLiquidity.wave || ''} onChange={e => handleChange('wave', e.target.value)} icon={Smartphone} placeholder="0.00" />
+              <Input label="APS Wallet" type="number" value={currentLiquidity.aps || ''} onChange={e => handleChange('aps', e.target.value)} icon={Globe} placeholder="0.00" />
+              <Input label="Orange Money" type="number" value={currentLiquidity.orange || ''} onChange={e => handleChange('orange', e.target.value)} icon={Smartphone} placeholder="0.00" />
+              <Input label="NAFA Wallet" type="number" value={currentLiquidity.nafa || ''} onChange={e => handleChange('nafa', e.target.value)} icon={Globe} placeholder="0.00" />
+            </div>
+            <div className="mt-6 p-4 bg-slate-900 text-white rounded-xl">
+              <p className="text-slate-400 text-sm font-medium">Actual Closing Balance</p>
+              <h2 className="text-3xl font-bold text-white">{formatCurrency(activeBalance)}</h2>
+            </div>
+          </Card>
+        </div>
 
         <div className="space-y-6">
           <Card className="p-6 border-amber-100 bg-amber-50">
@@ -70,22 +92,35 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
             </h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center py-2 border-b border-amber-200">
-                <span className="text-slate-600">Active Balance</span>
-                <span className="font-bold">{formatCurrency(activeBalance)}</span>
+                <span className="text-slate-600">Opening Balance</span>
+                <span className="font-semibold text-slate-800">{formatCurrency(currentLiquidity.openingBalance)}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-amber-200">
-                <span className="text-slate-600">Daily Loans Issued</span>
-                <span className="font-bold text-red-600">{formatCurrency(stats.issuedToday)}</span>
+                <span className="text-slate-600">Total Repayments (+)</span>
+                <span className="font-semibold text-emerald-600">{formatCurrency(stats.returnedToday)}</span>
               </div>
-              <div className="flex justify-between items-center py-3">
-                <span className="font-bold text-slate-800">Operational Margin</span>
+              <div className="flex justify-between items-center py-2 border-b border-amber-200">
+                <span className="text-slate-600">Total Loans Issued (-)</span>
+                <span className="font-semibold text-red-600">{formatCurrency(stats.issuedToday)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 bg-white/50 p-2 rounded border border-amber-200">
+                <span className="font-bold text-slate-700">Expected Balance</span>
+                <span className="font-bold text-slate-900">{formatCurrency(expectedBalance)}</span>
+              </div>
+              <div className="flex justify-between items-center py-3 pt-4">
+                <span className="font-bold text-slate-800">Actual Discrepancy</span>
                 <div className="text-right">
-                  <p className={`text-lg font-black ${discrepancy < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                  <p className={`text-lg font-black ${Math.abs(discrepancy) > 0.01 ? 'text-red-600' : 'text-emerald-600'}`}>
                     {formatCurrency(discrepancy)}
                   </p>
-                  {discrepancy < 0 && (
+                  {Math.abs(discrepancy) > 0.01 && (
                     <p className="text-[10px] text-red-500 flex items-center gap-1 justify-end">
-                      <AlertTriangle className="w-3 h-3" /> Discrepancy Flagged: Insufficient Liquidity
+                      <AlertTriangle className="w-3 h-3" /> {discrepancy < 0 ? 'Shortage Detected' : 'Surplus Detected'}
+                    </p>
+                  )}
+                  {Math.abs(discrepancy) <= 0.01 && (
+                    <p className="text-[10px] text-emerald-600 flex items-center gap-1 justify-end">
+                      <CheckCircle2 className="w-3 h-3" /> Perfectly Reconciled
                     </p>
                   )}
                 </div>

@@ -33,6 +33,7 @@ export const useFloatData = (rootId) => {
 
   const currentLiquidity = useMemo(() => {
     const defaultLiquidity = {
+      openingBalance: 0,
       bank: 0,
       wave: 0,
       aps: 0,
@@ -53,6 +54,7 @@ export const useFloatData = (rootId) => {
   const updateLiquidity = (data) => {
     setLiquidity(prev => {
       const current = prev[today] || {
+        openingBalance: 0,
         bank: 0, wave: 0, aps: 0, orange: 0, nafa: 0, cash: 0,
         passiveBalance: 0, passiveBalanceLastUpdated: null
       };
