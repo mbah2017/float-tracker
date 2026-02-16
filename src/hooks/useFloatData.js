@@ -12,6 +12,11 @@ export const useFloatData = (rootId) => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [liquidity, setLiquidity] = useState(() => {
+    const saved = localStorage.getItem(`float_liquidity_${rootId}`);
+    return saved ? JSON.parse(saved) : {};
+  });
+
   useEffect(() => {
     localStorage.setItem(`float_agents_${rootId}`, JSON.stringify(agents));
   }, [agents, rootId]);
@@ -20,7 +25,51 @@ export const useFloatData = (rootId) => {
     localStorage.setItem(`float_tx_${rootId}`, JSON.stringify(transactions));
   }, [transactions, rootId]);
 
+  useEffect(() => {
+    localStorage.setItem(`float_liquidity_${rootId}`, JSON.stringify(liquidity));
+  }, [liquidity, rootId]);
+
   const today = new Date().toISOString().split('T')[0];
+
+  const currentLiquidity = useMemo(() => {
+    const defaultLiquidity = {
+      bank: 0,
+      wave: 0,
+      aps: 0,
+      orange: 0,
+      nafa: 0,
+      cash: 0,
+      passiveBalance: 0,
+      passiveBalanceLastUpdated: null
+    };
+    return liquidity[today] || defaultLiquidity;
+  }, [liquidity, today]);
+
+  const activeBalance = useMemo(() => {
+    const l = currentLiquidity;
+    return l.bank + l.wave + l.aps + l.orange + l.nafa + l.cash;
+  }, [currentLiquidity]);
+
+  const updateLiquidity = (data) => {
+    setLiquidity(prev => {
+      const current = prev[today] || {
+        bank: 0, wave: 0, aps: 0, orange: 0, nafa: 0, cash: 0,
+        passiveBalance: 0, passiveBalanceLastUpdated: null
+      };
+
+      const updated = { ...current, ...data };
+      
+      // If passiveBalance is changed, update timestamp
+      if (data.passiveBalance !== undefined && data.passiveBalance !== current.passiveBalance) {
+        updated.passiveBalanceLastUpdated = new Date().toISOString();
+      }
+
+      return {
+        ...prev,
+        [today]: updated
+      };
+    });
+  };
 
   const todaysTransactions = useMemo(() => {
     return transactions.filter(t => t.date === today);
@@ -96,6 +145,9 @@ export const useFloatData = (rootId) => {
     stats,
     today,
     addAgent,
-    addTransaction
+    addTransaction,
+    currentLiquidity,
+    activeBalance,
+    updateLiquidity
   };
 };

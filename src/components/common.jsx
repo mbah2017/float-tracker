@@ -26,17 +26,25 @@ export const Button = ({ children, onClick, variant = "primary", className = "",
   );
 };
 
-export const Input = ({ label, value, onChange, type = "text", placeholder, error, name }) => (
+export const Input = ({ label, value, onChange, type = "text", placeholder, error, name, disabled = false, icon: Icon }) => (
   <div className="mb-4">
     <label className="block text-sm font-semibold text-slate-700 mb-1">{label}</label>
-    <input
-      type={type}
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      className={`w-full p-3 rounded-lg border ${error ? 'border-red-500 bg-red-50' : 'border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'} outline-none transition-all`}
-    />
+    <div className="relative">
+      {Icon && (
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+          <Icon className="w-5 h-5" />
+        </div>
+      )}
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={disabled}
+        className={`w-full p-3 rounded-lg border ${Icon ? 'pl-10' : ''} ${disabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''} ${error ? 'border-red-500 bg-red-50' : 'border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'} outline-none transition-all`}
+      />
+    </div>
     {error && <p className="text-red-500 text-xs mt-1 flex items-center"><AlertCircle className="w-3 h-3 mr-1" />{error}</p>}
   </div>
 );

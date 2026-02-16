@@ -19,7 +19,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { Button, Badge, Input } from './common';
-import { DashboardView, AgentsView, ReportView, OperatorsView } from './DashboardViews';
+import { DashboardView, AgentsView, ReportView, OperatorsView, LiquidityView } from './DashboardViews';
 import { useFloatData } from '../hooks/useFloatData';
 import { formatCurrency } from '../utils/formatters';
 import { PROVIDERS } from '../constants';
@@ -37,7 +37,10 @@ export const Dashboard = ({ user, onLogout }) => {
     stats,
     today,
     addAgent,
-    addTransaction
+    addTransaction,
+    currentLiquidity,
+    activeBalance,
+    updateLiquidity
   } = useFloatData(rootId);
 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -275,6 +278,7 @@ Served by: ${user.username}`;
             {[
               { id: 'dashboard', label: 'Dashboard', icon: Wallet },
               { id: 'reports', label: 'Reports', icon: History },
+              { id: 'liquidity', label: 'Liquidity', icon: Banknote },
               { id: 'agents', label: 'Manage Agents', icon: Users },
               ...(isMaster ? [{ id: 'operators', label: 'Operators', icon: UserCog }] : []),
             ].map(item => (
@@ -296,8 +300,17 @@ Served by: ${user.username}`;
         </aside>
 
         <main className="flex-1">
-          {activeTab === 'dashboard' && <DashboardView stats={stats} formatCurrency={formatCurrency} />}
+          {activeTab === 'dashboard' && <DashboardView stats={stats} formatCurrency={formatCurrency} activeBalance={activeBalance} />}
           {activeTab === 'reports' && <ReportView agents={agents} agentBalances={agentBalances} todaysTransactions={todaysTransactions} formatCurrency={formatCurrency} today={today} PROVIDERS={PROVIDERS} />}
+          {activeTab === 'liquidity' && (
+            <LiquidityView 
+              currentLiquidity={currentLiquidity} 
+              updateLiquidity={updateLiquidity} 
+              activeBalance={activeBalance}
+              stats={stats}
+              formatCurrency={formatCurrency}
+            />
+          )}
           {activeTab === 'agents' && <AgentsView agents={agents} agentBalances={agentBalances} openModal={openModal} fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} downloadTemplate={downloadTemplate} formatCurrency={formatCurrency} />}
           {activeTab === 'operators' && isMaster && (
             <OperatorsView
@@ -426,7 +439,13 @@ Served by: ${user.username}`;
             </div>
             <div className="p-6 border-t border-slate-100 bg-slate-50 rounded-b-2xl flex justify-end gap-3 sticky bottom-0 z-10">
               <Button variant="secondary" onClick={closeModal}>Cancel</Button>
-              <Button variant={modalType === 'issue' || modalType === 'add_agent' ? 'primary' : 'success'} onClick={modalType === 'add_agent' ? handleAddAgent : handleTransaction} disabled={!amount || (modalType !== 'add_agent' && !confirmed)}>{modalType === 'add_agent' ? 'Save Agent' : modalType === 'issue' ? 'Confirm Issue' : 'Confirm Return'}</Button>
+              <Button 
+                variant={modalType === 'issue' || modalType === 'add_agent' ? 'primary' : 'success'} 
+                onClick={modalType === 'add_agent' ? handleAddAgent : handleTransaction} 
+                disabled={modalType === 'add_agent' ? !agentName : (!amount || !confirmed)}
+              >
+                {modalType === 'add_agent' ? 'Save Agent' : modalType === 'issue' ? 'Confirm Issue' : 'Confirm Return'}
+              </Button>
             </div>
           </div>
         </div>

@@ -1,4 +1,3 @@
-import React from 'react';
 import { 
   ArrowUpCircle, 
   ArrowDownCircle, 
@@ -12,62 +11,204 @@ import {
   RefreshCw,
   User,
   Trash2,
-  UserCog
+  UserCog,
+  History,
+  Banknote,
+  Building2,
+  Smartphone,
+  Globe,
+  Lock,
+  Unlock,
+  AlertTriangle,
+  Scale
 } from 'lucide-react';
 import { Card, Button, Badge, Input } from './common';
 
-export const DashboardView = ({ stats, formatCurrency }) => (
+export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance, stats, formatCurrency }) => {
+  const isPassiveLocked = currentLiquidity.passiveBalanceLastUpdated && 
+    (new Date() - new Date(currentLiquidity.passiveBalanceLastUpdated)) < (30 * 24 * 60 * 60 * 1000);
+
+  const totalOperationalLiquidity = activeBalance + stats.totalOutstanding;
+  const discrepancy = activeBalance - stats.issuedToday;
+
+  const handleChange = (field, value) => {
+    updateLiquidity({ [field]: parseFloat(value) || 0 });
+  };
+
+  return (
+    <div className="space-y-6 pb-20">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-slate-800">Liquidity Tracking</h2>
+        <Badge color="blue">Daily Snapshot</Badge>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="p-6">
+          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <Scale className="w-5 h-5 text-blue-600" /> Active Balance Breakdown
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input label="Cash on Hand" type="number" value={currentLiquidity.cash} onChange={e => handleChange('cash', e.target.value)} icon={Banknote} />
+            <Input label="Bank Account" type="number" value={currentLiquidity.bank} onChange={e => handleChange('bank', e.target.value)} icon={Building2} />
+            <Input label="Wave Wallet" type="number" value={currentLiquidity.wave} onChange={e => handleChange('wave', e.target.value)} icon={Smartphone} />
+            <Input label="APS Wallet" type="number" value={currentLiquidity.aps} onChange={e => handleChange('aps', e.target.value)} icon={Globe} />
+            <Input label="Orange Money" type="number" value={currentLiquidity.orange} onChange={e => handleChange('orange', e.target.value)} icon={Smartphone} />
+            <Input label="NAFA Wallet" type="number" value={currentLiquidity.nafa} onChange={e => handleChange('nafa', e.target.value)} icon={Globe} />
+          </div>
+          <div className="mt-6 p-4 bg-slate-900 text-white rounded-xl">
+            <p className="text-slate-400 text-sm font-medium">Total Active Balance</p>
+            <h2 className="text-3xl font-bold text-white">{formatCurrency(activeBalance)}</h2>
+          </div>
+        </Card>
+
+        <div className="space-y-6">
+          <Card className="p-6 border-amber-100 bg-amber-50">
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <History className="w-5 h-5 text-amber-600" /> Reconciliation
+            </h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center py-2 border-b border-amber-200">
+                <span className="text-slate-600">Active Balance</span>
+                <span className="font-bold">{formatCurrency(activeBalance)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-amber-200">
+                <span className="text-slate-600">Daily Loans Issued</span>
+                <span className="font-bold text-red-600">{formatCurrency(stats.issuedToday)}</span>
+              </div>
+              <div className="flex justify-between items-center py-3">
+                <span className="font-bold text-slate-800">Operational Margin</span>
+                <div className="text-right">
+                  <p className={`text-lg font-black ${discrepancy < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {formatCurrency(discrepancy)}
+                  </p>
+                  {discrepancy < 0 && (
+                    <p className="text-[10px] text-red-500 flex items-center gap-1 justify-end">
+                      <AlertTriangle className="w-3 h-3" /> Discrepancy Flagged: Insufficient Liquidity
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-slate-400" /> Passive Balance
+                </h3>
+                <p className="text-xs text-slate-500">Fixed assets and long-term reserves</p>
+              </div>
+              {isPassiveLocked ? (
+                <Badge color="slate"><Lock className="w-3 h-3 mr-1" /> Locked</Badge>
+              ) : (
+                <Badge color="green"><Unlock className="w-3 h-3 mr-1" /> Open</Badge>
+              )}
+            </div>
+            
+            <div className="relative">
+              <Input 
+                label="Total Fixed Assets" 
+                type="number" 
+                value={currentLiquidity.passiveBalance} 
+                onChange={e => handleChange('passiveBalance', e.target.value)} 
+                disabled={isPassiveLocked}
+                placeholder="0.00"
+              />
+              {isPassiveLocked && (
+                <div className="mt-2 text-[10px] text-amber-600 bg-amber-50 p-2 rounded border border-amber-100 flex items-start gap-2">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>This field is locked for 30 days to ensure asset stability. Last updated: {new Date(currentLiquidity.passiveBalanceLastUpdated).toLocaleDateString()}</span>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card className="p-6 bg-blue-600 text-white border-none shadow-lg shadow-blue-200">
+            <p className="text-blue-100 text-sm font-medium mb-1">Total Daily Operational Liquidity</p>
+            <h2 className="text-3xl font-bold">{formatCurrency(totalOperationalLiquidity)}</h2>
+            <p className="text-xs text-blue-200 mt-2 opacity-80">Sum of active balance and all outstanding team debt.</p>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const DashboardView = ({ stats, formatCurrency, activeBalance }) => (
   <div className="space-y-6 pb-20">
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <Card className="bg-gradient-to-br from-blue-600 to-blue-800 text-white border-none">
         <div className="p-5">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-blue-100 text-sm font-medium mb-1">Total Issued Today</p>
-              <h2 className="text-3xl font-bold">{formatCurrency(stats.issuedToday)}</h2>
+              <p className="text-blue-100 text-sm font-medium mb-1">Issued Today</p>
+              <h2 className="text-2xl font-bold">{formatCurrency(stats.issuedToday)}</h2>
             </div>
             <div className="p-2 bg-white/20 rounded-lg">
-              <ArrowUpCircle className="w-6 h-6 text-white" />
+              <ArrowUpCircle className="w-5 h-5 text-white" />
             </div>
           </div>
-          <p className="text-xs text-blue-200 mt-4 opacity-80">Today, {new Date().toLocaleDateString()}</p>
         </div>
       </Card>
+
       <Card className="bg-white">
         <div className="p-5">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-500 text-sm font-medium mb-1">Repaid Today</p>
-              <h2 className="text-3xl font-bold text-emerald-600">{formatCurrency(stats.returnedToday)}</h2>
+              <h2 className="text-2xl font-bold text-emerald-600">{formatCurrency(stats.returnedToday)}</h2>
             </div>
             <div className="p-2 bg-emerald-100 rounded-lg">
-              <ArrowDownCircle className="w-6 h-6 text-emerald-600" />
+              <ArrowDownCircle className="w-5 h-5 text-emerald-600" />
             </div>
-          </div>
-           <div className="mt-4 w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-            <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${stats.issuedToday > 0 ? (stats.returnedToday / stats.issuedToday) * 100 : 0}%` }}></div>
           </div>
         </div>
       </Card>
+
       <Card className="bg-slate-900 text-white border-none">
         <div className="p-5">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-slate-300 text-sm font-medium mb-1">Total Team Debt</p>
-              <h2 className={`text-3xl font-bold ${stats.totalOutstanding > 0 ? 'text-amber-400' : 'text-white'}`}>
+              <p className="text-slate-300 text-sm font-medium mb-1">Active Balance</p>
+              <h2 className="text-2xl font-bold text-blue-400">{formatCurrency(activeBalance)}</h2>
+            </div>
+            <div className="p-2 bg-slate-800 rounded-lg">
+              <Banknote className="w-5 h-5 text-blue-400" />
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="bg-white border-blue-100">
+        <div className="p-5">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-slate-500 text-sm font-medium mb-1">Team Debt</p>
+              <h2 className={`text-2xl font-bold ${stats.totalOutstanding > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
                 {formatCurrency(stats.totalOutstanding)}
               </h2>
             </div>
-            <div className="p-2 bg-slate-800 rounded-lg">
-              <Wallet className="w-6 h-6 text-amber-400" />
+            <div className="p-2 bg-amber-50 rounded-lg">
+              <Wallet className="w-5 h-5 text-amber-500" />
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-4">
-            {stats.totalOutstanding === 0 ? "Zero Leakage. All Clear! ✅" : "Includes previous days' shortages"}
-          </p>
         </div>
       </Card>
     </div>
+
+    <Card className="bg-blue-50 border-blue-100 p-5">
+       <div className="flex justify-between items-center">
+          <div>
+             <p className="text-blue-600 text-sm font-bold uppercase tracking-wider">Total Operational Liquidity</p>
+             <h2 className="text-3xl font-black text-blue-900">{formatCurrency(activeBalance + stats.totalOutstanding)}</h2>
+          </div>
+          <div className="text-right hidden md:block">
+             <p className="text-xs text-blue-500 font-medium">Combined Capital</p>
+             <p className="text-[10px] text-blue-400 italic">Active Balance + Outstanding Debt</p>
+          </div>
+       </div>
+    </Card>
   </div>
 );
 
