@@ -431,14 +431,14 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
       ) : (
         <div className="bg-white border border-slate-200 shadow-sm print:shadow-none print:border-none">
           {/* Header mimicking PDF */}
-          <div className="p-8 border-b border-slate-200">
-            <div className="flex justify-between items-start mb-6">
-              <div className="flex-1">
+          <div className="p-4 sm:p-8 border-b border-slate-200">
+            <div className="flex flex-col sm:flex-row justify-between items-start mb-6 gap-4 sm:gap-0">
+              <div className="flex-1 w-full">
                 {isEditingTitle ? (
                   <div className="flex items-center gap-2">
                     <input 
                       autoFocus
-                      className="text-3xl font-black text-slate-900 uppercase tracking-tight border-b-2 border-blue-500 outline-none w-full max-w-lg"
+                      className="text-xl sm:text-3xl font-black text-slate-900 uppercase tracking-tight border-b-2 border-blue-500 outline-none w-full max-w-lg"
                       value={settings.reportName}
                       onChange={e => setSettings(prev => ({ ...prev, reportName: e.target.value }))}
                       onBlur={() => setIsEditingTitle(false)}
@@ -447,7 +447,7 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
                   </div>
                 ) : (
                   <div className="group flex items-center gap-3">
-                    <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">{settings.reportName || 'Float Cashbook'}</h1>
+                    <h1 className="text-xl sm:text-3xl font-black text-slate-900 uppercase tracking-tight">{settings.reportName || 'Float Cashbook'}</h1>
                     <button 
                       onClick={() => setIsEditingTitle(true)}
                       className="p-1 text-slate-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all print:hidden"
@@ -456,26 +456,26 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
                     </button>
                   </div>
                 )}
-                <p className="text-slate-500 mt-1">{new Date(today).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p className="text-xs sm:text-slate-500 mt-1">{new Date(today).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
               </div>
-              <div className="text-right">
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Date Generated</p>
-                <p className="font-mono text-slate-700">{new Date().toLocaleDateString()}</p>
+              <div className="text-left sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 w-full sm:w-auto">
+                <p className="text-[10px] sm:text-sm font-bold text-slate-400 uppercase tracking-wider">Date Generated</p>
+                <p className="text-xs sm:text-base font-mono text-slate-700">{new Date().toLocaleDateString()}</p>
               </div>
             </div>
             
-            <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase mb-1">Total Debit (-)</p>
-                <p className="text-xl font-bold text-red-600">{formatCurrency(cashbookTotals.totalDebit)}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+              <div className="border-b sm:border-b-0 sm:border-r border-slate-200 pb-3 sm:pb-0 sm:pr-4">
+                <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase mb-1">Total Debit (-)</p>
+                <p className="text-lg sm:text-xl font-bold text-red-600">{formatCurrency(cashbookTotals.totalDebit)}</p>
               </div>
-              <div className="text-center">
-                <p className="text-xs font-bold text-slate-500 uppercase mb-1">Total Credit (+)</p>
-                <p className="text-xl font-bold text-emerald-600">{formatCurrency(cashbookTotals.totalCredit)}</p>
+              <div className="border-b sm:border-b-0 sm:border-r border-slate-200 py-3 sm:py-0 sm:px-4 text-left sm:text-center">
+                <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase mb-1">Total Credit (+)</p>
+                <p className="text-lg sm:text-xl font-bold text-emerald-600">{formatCurrency(cashbookTotals.totalCredit)}</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-bold text-slate-500 uppercase mb-1">Net Balance</p>
-                <p className={`text-xl font-bold ${netBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              <div className="pt-3 sm:pt-0 sm:pl-4 text-left sm:text-right">
+                <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase mb-1">Net Balance</p>
+                <p className={`text-lg sm:text-xl font-bold ${netBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                   {formatCurrency(netBalance)}
                 </p>
               </div>
@@ -483,17 +483,18 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
           </div>
 
           {/* Detailed Table */}
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b-2 border-slate-800">
-                <th className="px-4 py-3 text-left font-bold text-slate-900 w-32">Date</th>
-                <th className="px-4 py-3 text-left font-bold text-slate-900">Name</th>
-                <th className="px-4 py-3 text-left font-bold text-slate-900">Notes</th>
-                <th className="px-4 py-3 text-right font-bold text-slate-900 w-32">Debit (-)</th>
-                <th className="px-4 py-3 text-right font-bold text-slate-900 w-32">Credit (+)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px] sm:min-w-full">
+              <thead>
+                <tr className="border-b-2 border-slate-800">
+                  <th className="px-3 sm:px-4 py-3 text-left font-bold text-slate-900 w-24 sm:w-32">Date</th>
+                  <th className="px-3 sm:px-4 py-3 text-left font-bold text-slate-900">Name</th>
+                  <th className="px-3 sm:px-4 py-3 text-left font-bold text-slate-900">Notes</th>
+                  <th className="px-3 sm:px-4 py-3 text-right font-bold text-slate-900 w-24 sm:w-32">Debit (-)</th>
+                  <th className="px-3 sm:px-4 py-3 text-right font-bold text-slate-900 w-24 sm:w-32">Credit (+)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
               {todaysTransactions.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="px-4 py-8 text-center text-slate-400 italic">No transactions recorded for this period.</td>
@@ -507,27 +508,27 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
 
                   return (
                     <tr key={t.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 align-top">
-                        <span className="block font-medium text-slate-700">{dateStr}</span>
-                        <span className="block text-xs text-slate-400">{timeStr}</span>
+                      <td className="px-3 sm:px-4 py-3 align-top">
+                        <span className="block font-medium text-slate-700 text-xs sm:text-sm">{dateStr}</span>
+                        <span className="block text-[10px] sm:text-xs text-slate-400">{timeStr}</span>
                       </td>
-                      <td className="px-4 py-3 align-top font-medium text-slate-800 uppercase">
+                      <td className="px-3 sm:px-4 py-3 align-top font-medium text-slate-800 uppercase text-xs sm:text-sm">
                         {agentName}
                       </td>
-                      <td className="px-4 py-3 align-top text-slate-600">
+                      <td className="px-3 sm:px-4 py-3 align-top text-slate-600 text-xs sm:text-sm">
                          {t.note ? (
                            <>
                              <span className="font-medium text-slate-800">{t.note}</span>
-                             <span className="text-xs text-slate-400 ml-2">({providerLabel})</span>
+                             <span className="text-[10px] sm:text-xs text-slate-400 ml-1 sm:ml-2">({providerLabel})</span>
                            </>
                          ) : (
                            <span className="italic text-slate-400">{providerLabel}</span>
                          )}
                       </td>
-                      <td className="px-4 py-3 align-top text-right font-mono text-red-600">
+                      <td className="px-3 sm:px-4 py-3 align-top text-right font-mono text-red-600 text-xs sm:text-sm">
                         {t.type === 'issue' ? formatCurrency(t.amount).replace('GMD', '') : '-'}
                       </td>
-                      <td className="px-4 py-3 align-top text-right font-mono text-emerald-600">
+                      <td className="px-3 sm:px-4 py-3 align-top text-right font-mono text-emerald-600 text-xs sm:text-sm">
                         {t.type !== 'issue' ? formatCurrency(t.amount).replace('GMD', '') : '-'}
                       </td>
                     </tr>
