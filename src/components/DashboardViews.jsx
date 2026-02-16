@@ -32,7 +32,9 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
   const discrepancy = activeBalance - stats.issuedToday;
 
   const handleChange = (field, value) => {
-    updateLiquidity({ [field]: parseFloat(value) || 0 });
+    // If input is empty, set to 0 to avoid NaN, otherwise parse the float
+    const parsed = value === '' ? 0 : parseFloat(value);
+    updateLiquidity({ [field]: parsed });
   };
 
   return (
@@ -48,12 +50,12 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
             <Scale className="w-5 h-5 text-blue-600" /> Active Balance Breakdown
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="Cash on Hand" type="number" value={currentLiquidity.cash} onChange={e => handleChange('cash', e.target.value)} icon={Banknote} />
-            <Input label="Bank Account" type="number" value={currentLiquidity.bank} onChange={e => handleChange('bank', e.target.value)} icon={Building2} />
-            <Input label="Wave Wallet" type="number" value={currentLiquidity.wave} onChange={e => handleChange('wave', e.target.value)} icon={Smartphone} />
-            <Input label="APS Wallet" type="number" value={currentLiquidity.aps} onChange={e => handleChange('aps', e.target.value)} icon={Globe} />
-            <Input label="Orange Money" type="number" value={currentLiquidity.orange} onChange={e => handleChange('orange', e.target.value)} icon={Smartphone} />
-            <Input label="NAFA Wallet" type="number" value={currentLiquidity.nafa} onChange={e => handleChange('nafa', e.target.value)} icon={Globe} />
+            <Input label="Cash on Hand" type="number" value={currentLiquidity.cash || ''} onChange={e => handleChange('cash', e.target.value)} icon={Banknote} placeholder="0.00" />
+            <Input label="Bank Account" type="number" value={currentLiquidity.bank || ''} onChange={e => handleChange('bank', e.target.value)} icon={Building2} placeholder="0.00" />
+            <Input label="Wave Wallet" type="number" value={currentLiquidity.wave || ''} onChange={e => handleChange('wave', e.target.value)} icon={Smartphone} placeholder="0.00" />
+            <Input label="APS Wallet" type="number" value={currentLiquidity.aps || ''} onChange={e => handleChange('aps', e.target.value)} icon={Globe} placeholder="0.00" />
+            <Input label="Orange Money" type="number" value={currentLiquidity.orange || ''} onChange={e => handleChange('orange', e.target.value)} icon={Smartphone} placeholder="0.00" />
+            <Input label="NAFA Wallet" type="number" value={currentLiquidity.nafa || ''} onChange={e => handleChange('nafa', e.target.value)} icon={Globe} placeholder="0.00" />
           </div>
           <div className="mt-6 p-4 bg-slate-900 text-white rounded-xl">
             <p className="text-slate-400 text-sm font-medium">Total Active Balance</p>
