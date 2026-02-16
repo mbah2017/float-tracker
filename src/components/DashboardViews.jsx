@@ -399,10 +399,9 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
                     </div>
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="font-semibold text-slate-700">
-                          {agents.find(a => a.id === t.agentId)?.name || 'Unknown'}
-                        </p>
-                        {t.type === 'return' && (
+                                          <p className="font-semibold text-slate-700">
+                                            {agents.find(a => String(a.id) === String(t.agentId))?.name || 'Unknown Agent'}
+                                          </p>                        {t.type === 'return' && (
                             <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold border ${isCheckout ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
                                 {isCheckout ? 'Float Return' : 'Loan Repayment'}
                             </span>
@@ -501,7 +500,7 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
                 </tr>
               ) : (
                 todaysTransactions.map((t) => {
-                  const agentName = agents.find(a => a.id === t.agentId)?.name || 'Unknown';
+                  const agentName = agents.find(a => String(a.id) === String(t.agentId))?.name || 'Unknown Agent';
                   const providerLabel = PROVIDERS.find(p => p.id === t.method)?.label || t.method;
                   const dateStr = new Date(t.timestamp).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: '2-digit' });
                   const timeStr = new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -538,9 +537,10 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
             </tbody>
           </table>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
 };
 
 export const OperatorsView = ({ 

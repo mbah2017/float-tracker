@@ -96,11 +96,11 @@ export const Dashboard = ({ user, onLogout }) => {
   const closeModal = () => setIsModalOpen(false);
 
   const handleTransaction = () => {
-    if (!amount || !selectedAgentId) return;
+    if (!amount || !selectedAgentId || selectedAgentId === '') return;
     const parsedAmount = parseFloat(amount);
 
     const txData = {
-      agentId: selectedAgentId,
+      agentId: String(selectedAgentId),
       type: modalType,
       category: modalType === 'return' ? returnCategory : 'issue',
       amount: parsedAmount,
@@ -110,7 +110,7 @@ export const Dashboard = ({ user, onLogout }) => {
     };
 
     if (sendWhatsapp) {
-      const agent = agents.find(a => a.id === selectedAgentId);
+      const agent = agents.find(a => String(a.id) === String(selectedAgentId));
       if (agent && agent.phone) {
         const currentStats = agentBalances[agent.id] || { totalDue: 0 };
         let newBalance = currentStats.totalDue;
@@ -346,10 +346,22 @@ Served by: ${user.username}`;
                 </>
               ) : (
                 <>
-                  {modalType !== 'issue' && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-semibold mb-1">Select Agent</label>
+                    <select 
+                      className="w-full p-3 border rounded-lg bg-white" 
+                      value={selectedAgentId} 
+                      onChange={e => setSelectedAgentId(e.target.value)}
+                    >
+                      <option value="">Select Agent...</option>
+                      {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
+                  </div>
+
+                  {selectedAgentId && (
                     <div className="bg-slate-50 p-4 rounded-lg mb-4 space-y-2 border border-slate-100">
                       <div className="flex justify-between items-center">
-                         <p className="font-bold text-lg text-slate-800">{agents.find(a => a.id === selectedAgentId)?.name}</p>
+                         <p className="font-bold text-lg text-slate-800">{agents.find(a => String(a.id) === String(selectedAgentId))?.name}</p>
                          <Badge color={(agentBalances[selectedAgentId]?.totalDue || 0) > 0 ? 'red' : 'green'}>{(agentBalances[selectedAgentId]?.totalDue || 0) > 0 ? 'Owing' : 'Cleared'}</Badge>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-xs border-t border-slate-200 pt-3">
@@ -368,29 +380,6 @@ Served by: ${user.username}`;
                               <button onClick={() => setReturnCategory('checkout')} className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${returnCategory === 'checkout' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-slate-100 bg-slate-50 text-slate-500 hover:bg-slate-100'}`}><LogOut className="w-6 h-6 mb-1"/><span className="font-bold text-sm">Return Float</span><span className="text-[10px] opacity-75">End of day closing</span></button>
                           </div>
                       </div>
-                  )}
-
-                  {modalType === 'issue' && selectedAgentId && (
-                    <div className="bg-slate-50 p-4 rounded-lg mb-4">
-                      <p className="text-sm text-slate-500 mb-1">Agent</p>
-                      <p className="font-bold text-lg text-slate-800">{agents.find(a => a.id === selectedAgentId)?.name}</p>
-                      {(agentBalances[selectedAgentId]?.prevDebt || 0) > 0 && (
-                          <div className="mt-2 flex items-center text-xs text-red-600 bg-red-50 p-2 rounded">
-                              <AlertTriangle className="w-3 h-3 mr-1" />
-                              Warning: Agent has arrears of {formatCurrency(agentBalances[selectedAgentId].prevDebt)}
-                          </div>
-                      )}
-                    </div>
-                  )}
-
-                  {!selectedAgentId && (
-                     <div className="mb-4">
-                      <label className="block text-sm font-semibold mb-1">Select Agent</label>
-                      <select className="w-full p-3 border rounded-lg bg-white" value={selectedAgentId} onChange={e => setSelectedAgentId(e.target.value)}>
-                        <option value="">Select...</option>
-                        {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                      </select>
-                     </div>
                   )}
 
                   <div className="mb-4">
@@ -427,7 +416,7 @@ Served by: ${user.username}`;
                   {modalType === 'issue' && amount > 0 && selectedAgentId && (
                     <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
                       <div className="flex items-center gap-2 mb-2 font-bold text-slate-800"><Scale className="w-4 h-4" /> Legal Agreement</div>
-                      <p className="mb-2 italic">"I, <strong>{agents.find(a => a.id === selectedAgentId)?.name}</strong>, acknowledge receipt of <strong>{formatCurrency(amount)}</strong> on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()} as a float loan from the Master Agent."</p>
+                      <p className="mb-2 italic">"I, <strong>{agents.find(a => String(a.id) === String(selectedAgentId))?.name}</strong>, acknowledge receipt of <strong>{formatCurrency(amount)}</strong> on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()} as a float loan from the Master Agent."</p>
                       <p className="font-semibold text-slate-800">"I agree to repay this full amount to the Master Agent by the end of today, before closing at 6:00 PM."</p>
                     </div>
                   )}
@@ -444,7 +433,7 @@ Served by: ${user.username}`;
               <Button 
                 variant={modalType === 'issue' || modalType === 'add_agent' ? 'primary' : 'success'} 
                 onClick={modalType === 'add_agent' ? handleAddAgent : handleTransaction} 
-                disabled={modalType === 'add_agent' ? !agentName : (!amount || !confirmed)}
+                disabled={modalType === 'add_agent' ? !agentName : (!amount || !confirmed || !selectedAgentId)}
               >
                 {modalType === 'add_agent' ? 'Save Agent' : modalType === 'issue' ? 'Confirm Issue' : 'Confirm Return'}
               </Button>
