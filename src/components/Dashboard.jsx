@@ -40,7 +40,9 @@ export const Dashboard = ({ user, onLogout }) => {
     addTransaction,
     currentLiquidity,
     activeBalance,
-    updateLiquidity
+    updateLiquidity,
+    settings,
+    setSettings
   } = useFloatData(rootId);
 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -301,7 +303,7 @@ Served by: ${user.username}`;
 
         <main className="flex-1">
           {activeTab === 'dashboard' && <DashboardView stats={stats} formatCurrency={formatCurrency} activeBalance={activeBalance} />}
-          {activeTab === 'reports' && <ReportView agents={agents} agentBalances={agentBalances} todaysTransactions={todaysTransactions} formatCurrency={formatCurrency} today={today} PROVIDERS={PROVIDERS} />}
+          {activeTab === 'reports' && <ReportView agents={agents} agentBalances={agentBalances} todaysTransactions={todaysTransactions} formatCurrency={formatCurrency} today={today} PROVIDERS={PROVIDERS} settings={settings} setSettings={setSettings} />}
           {activeTab === 'liquidity' && (
             <LiquidityView 
               currentLiquidity={currentLiquidity} 

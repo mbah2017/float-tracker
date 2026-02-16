@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { 
   ArrowUpCircle, 
   ArrowDownCircle, 
@@ -21,7 +22,8 @@ import {
   Unlock,
   AlertTriangle,
   Scale,
-  CheckCircle2
+  CheckCircle2,
+  Edit2
 } from 'lucide-react';
 import { Card, Button, Badge, Input } from './common';
 
@@ -304,93 +306,241 @@ export const AgentsView = ({ agents, agentBalances, openModal, fileInputRef, han
   </div>
 );
 
-export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCurrency, today, PROVIDERS }) => (
-  <div className="space-y-6 pb-20">
-    <div className="flex justify-between items-center">
-      <h2 className="text-2xl font-bold text-slate-800">Daily Reconciliation</h2>
-      <Button variant="outline" icon={Download} onClick={() => window.print()}>Print / PDF</Button>
-    </div>
+export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCurrency, today, PROVIDERS, settings, setSettings }) => {
+  const [viewMode, setViewMode] = useState('summary'); // 'summary' or 'cashbook'
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
 
-    <Card className="overflow-x-auto">
-      <table className="w-full text-sm text-left">
-        <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b">
-          <tr>
-            <th className="px-6 py-3">Agent</th>
-            <th className="px-6 py-3 text-right text-red-600">Prev. Debt</th>
-            <th className="px-6 py-3 text-right">Issued Today</th>
-            <th className="px-6 py-3 text-right text-emerald-600">Repaid Today</th>
-            <th className="px-6 py-3 text-right font-bold">Total Outstanding</th>
-            <th className="px-6 py-3 text-center">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {agents.map(agent => {
-             const bal = agentBalances[agent.id] || { issuedToday: 0, returnedToday: 0, prevDebt: 0, totalDue: 0 };
-             return (
-               <tr key={agent.id} className="bg-white border-b hover:bg-slate-50">
-                 <td className="px-6 py-4 font-medium text-slate-900">{agent.name}</td>
-                 <td className="px-6 py-4 text-right text-red-500">{formatCurrency(bal.prevDebt)}</td>
-                 <td className="px-6 py-4 text-right text-slate-600">{formatCurrency(bal.issuedToday)}</td>
-                 <td className="px-6 py-4 text-right text-emerald-600 font-bold">{formatCurrency(bal.returnedToday)}</td>
-                 <td className={`px-6 py-4 text-right font-bold ${bal.totalDue > 0 ? 'text-red-700' : 'text-slate-400'}`}>
-                   {formatCurrency(bal.totalDue)}
-                 </td>
-                 <td className="px-6 py-4 text-center">
-                   {bal.totalDue === 0 ? <Badge color="green">Cleared</Badge> : <Badge color="red">Owing</Badge>}
-                 </td>
-               </tr>
-             )
-          })}
-        </tbody>
-      </table>
-    </Card>
+  // Calculate totals for the cashbook footer
+  const cashbookTotals = todaysTransactions.reduce((acc, t) => {
+    if (t.type === 'issue') {
+      acc.totalDebit += t.amount;
+    } else {
+      acc.totalCredit += t.amount;
+    }
+    return acc;
+  }, { totalDebit: 0, totalCredit: 0 });
 
-    <h3 className="text-lg font-bold text-slate-800 mt-8">Today's Transactions ({today})</h3>
-    <div className="space-y-2">
-      {todaysTransactions.length === 0 && <p className="text-slate-500 italic">No transactions recorded today.</p>}
-      {todaysTransactions.slice().reverse().map(t => {
-        const provider = PROVIDERS.find(p => p.id === t.method) || PROVIDERS[0];
-        const ProviderIcon = provider.icon;
-        const isCheckout = t.category === 'checkout';
+  const netBalance = cashbookTotals.totalCredit - cashbookTotals.totalDebit;
 
-        return (
-          <div key={t.id} className="flex justify-between items-center bg-white p-3 rounded border border-slate-200 text-sm">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-full ${t.type === 'issue' ? 'bg-blue-100 text-blue-600' : t.category === 'checkout' ? 'bg-purple-100 text-purple-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                {t.type === 'issue' ? <ArrowUpCircle className="w-4 h-4"/> : isCheckout ? <LogOut className="w-4 h-4"/> : <RefreshCw className="w-4 h-4"/>}
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="font-semibold text-slate-700">
-                    {agents.find(a => a.id === t.agentId)?.name || 'Unknown'}
-                  </p>
-                  {t.type === 'return' && (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold border ${isCheckout ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
-                          {isCheckout ? 'Float Return' : 'Loan Repayment'}
-                      </span>
-                  )}
-                  <span className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold border ${provider.colorClass}`}>
-                    <ProviderIcon className="w-3 h-3"/>
-                    {provider.label}
+  return (
+    <div className="space-y-6 pb-20">
+      <div className="flex justify-between items-center print:hidden">
+        <h2 className="text-2xl font-bold text-slate-800">
+          {viewMode === 'summary' ? 'Daily Reconciliation' : 'Cashbook Report'}
+        </h2>
+        <div className="flex gap-2">
+          <div className="flex bg-slate-200 rounded-lg p-1">
+            <button 
+              onClick={() => setViewMode('summary')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === 'summary' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Summary
+            </button>
+            <button 
+              onClick={() => setViewMode('cashbook')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === 'cashbook' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Cashbook
+            </button>
+          </div>
+          <Button variant="outline" icon={Download} onClick={() => window.print()}>Print / PDF</Button>
+        </div>
+      </div>
+
+      {viewMode === 'summary' ? (
+        <>
+          <Card className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b">
+                <tr>
+                  <th className="px-6 py-3">Agent</th>
+                  <th className="px-6 py-3 text-right text-red-600">Prev. Debt</th>
+                  <th className="px-6 py-3 text-right">Issued Today</th>
+                  <th className="px-6 py-3 text-right text-emerald-600">Repaid Today</th>
+                  <th className="px-6 py-3 text-right font-bold">Total Outstanding</th>
+                  <th className="px-6 py-3 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {agents.map(agent => {
+                   const bal = agentBalances[agent.id] || { issuedToday: 0, returnedToday: 0, prevDebt: 0, totalDue: 0 };
+                   return (
+                     <tr key={agent.id} className="bg-white border-b hover:bg-slate-50">
+                       <td className="px-6 py-4 font-medium text-slate-900">{agent.name}</td>
+                       <td className="px-6 py-4 text-right text-red-500">{formatCurrency(bal.prevDebt)}</td>
+                       <td className="px-6 py-4 text-right text-slate-600">{formatCurrency(bal.issuedToday)}</td>
+                       <td className="px-6 py-4 text-right text-emerald-600 font-bold">{formatCurrency(bal.returnedToday)}</td>
+                       <td className={`px-6 py-4 text-right font-bold ${bal.totalDue > 0 ? 'text-red-700' : 'text-slate-400'}`}>
+                         {formatCurrency(bal.totalDue)}
+                       </td>
+                       <td className="px-6 py-4 text-center">
+                         {bal.totalDue === 0 ? <Badge color="green">Cleared</Badge> : <Badge color="red">Owing</Badge>}
+                       </td>
+                     </tr>
+                   )
+                })}
+              </tbody>
+            </table>
+          </Card>
+
+          <h3 className="text-lg font-bold text-slate-800 mt-8 print:hidden">Today's Transactions ({today})</h3>
+          <div className="space-y-2 print:hidden">
+            {todaysTransactions.length === 0 && <p className="text-slate-500 italic">No transactions recorded today.</p>}
+            {todaysTransactions.slice().reverse().map(t => {
+              const provider = PROVIDERS.find(p => p.id === t.method) || PROVIDERS[0];
+              const ProviderIcon = provider.icon;
+              const isCheckout = t.category === 'checkout';
+
+              return (
+                <div key={t.id} className="flex justify-between items-center bg-white p-3 rounded border border-slate-200 text-sm">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-full ${t.type === 'issue' ? 'bg-blue-100 text-blue-600' : t.category === 'checkout' ? 'bg-purple-100 text-purple-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                      {t.type === 'issue' ? <ArrowUpCircle className="w-4 h-4"/> : isCheckout ? <LogOut className="w-4 h-4"/> : <RefreshCw className="w-4 h-4"/>}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-semibold text-slate-700">
+                          {agents.find(a => a.id === t.agentId)?.name || 'Unknown'}
+                        </p>
+                        {t.type === 'return' && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold border ${isCheckout ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                                {isCheckout ? 'Float Return' : 'Loan Repayment'}
+                            </span>
+                        )}
+                        <span className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold border ${provider.colorClass}`}>
+                          <ProviderIcon className="w-3 h-3"/>
+                          {provider.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <span>{new Date(t.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1"><User className="w-3 h-3" /> {t.performedBy || 'Unknown'}</span>
+                        {t.note && <span>• {t.note}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <span className={`font-bold ${t.type === 'issue' ? 'text-slate-700' : 'text-emerald-600'}`}>
+                    {t.type === 'issue' ? '-' : '+'}{formatCurrency(t.amount)}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <span>{new Date(t.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1"><User className="w-3 h-3" /> {t.performedBy || 'Unknown'}</span>
-                  {t.note && <span>• {t.note}</span>}
-                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <div className="bg-white border border-slate-200 shadow-sm print:shadow-none print:border-none">
+          {/* Header mimicking PDF */}
+          <div className="p-8 border-b border-slate-200">
+            <div className="flex justify-between items-start mb-6">
+              <div className="flex-1">
+                {isEditingTitle ? (
+                  <div className="flex items-center gap-2">
+                    <input 
+                      autoFocus
+                      className="text-3xl font-black text-slate-900 uppercase tracking-tight border-b-2 border-blue-500 outline-none w-full max-w-lg"
+                      value={settings.reportName}
+                      onChange={e => setSettings(prev => ({ ...prev, reportName: e.target.value }))}
+                      onBlur={() => setIsEditingTitle(false)}
+                      onKeyDown={e => e.key === 'Enter' && setIsEditingTitle(false)}
+                    />
+                  </div>
+                ) : (
+                  <div className="group flex items-center gap-3">
+                    <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">{settings.reportName || 'Float Cashbook'}</h1>
+                    <button 
+                      onClick={() => setIsEditingTitle(true)}
+                      className="p-1 text-slate-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all print:hidden"
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+                <p className="text-slate-500 mt-1">{new Date(today).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Date Generated</p>
+                <p className="font-mono text-slate-700">{new Date().toLocaleDateString()}</p>
               </div>
             </div>
-            <span className={`font-bold ${t.type === 'issue' ? 'text-slate-700' : 'text-emerald-600'}`}>
-              {t.type === 'issue' ? '-' : '+'}{formatCurrency(t.amount)}
-            </span>
+            
+            <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+              <div>
+                <p className="text-xs font-bold text-slate-500 uppercase mb-1">Total Debit (-)</p>
+                <p className="text-xl font-bold text-red-600">{formatCurrency(cashbookTotals.totalDebit)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs font-bold text-slate-500 uppercase mb-1">Total Credit (+)</p>
+                <p className="text-xl font-bold text-emerald-600">{formatCurrency(cashbookTotals.totalCredit)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-bold text-slate-500 uppercase mb-1">Net Balance</p>
+                <p className={`text-xl font-bold ${netBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {formatCurrency(netBalance)}
+                </p>
+              </div>
+            </div>
           </div>
-        );
-      })}
+
+          {/* Detailed Table */}
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b-2 border-slate-800">
+                <th className="px-4 py-3 text-left font-bold text-slate-900 w-32">Date</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-900">Name</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-900">Notes</th>
+                <th className="px-4 py-3 text-right font-bold text-slate-900 w-32">Debit (-)</th>
+                <th className="px-4 py-3 text-right font-bold text-slate-900 w-32">Credit (+)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {todaysTransactions.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="px-4 py-8 text-center text-slate-400 italic">No transactions recorded for this period.</td>
+                </tr>
+              ) : (
+                todaysTransactions.map((t) => {
+                  const agentName = agents.find(a => a.id === t.agentId)?.name || 'Unknown';
+                  const providerLabel = PROVIDERS.find(p => p.id === t.method)?.label || t.method;
+                  const dateStr = new Date(t.timestamp).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: '2-digit' });
+                  const timeStr = new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                  return (
+                    <tr key={t.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 align-top">
+                        <span className="block font-medium text-slate-700">{dateStr}</span>
+                        <span className="block text-xs text-slate-400">{timeStr}</span>
+                      </td>
+                      <td className="px-4 py-3 align-top font-medium text-slate-800 uppercase">
+                        {agentName}
+                      </td>
+                      <td className="px-4 py-3 align-top text-slate-600">
+                         {t.note ? (
+                           <>
+                             <span className="font-medium text-slate-800">{t.note}</span>
+                             <span className="text-xs text-slate-400 ml-2">({providerLabel})</span>
+                           </>
+                         ) : (
+                           <span className="italic text-slate-400">{providerLabel}</span>
+                         )}
+                      </td>
+                      <td className="px-4 py-3 align-top text-right font-mono text-red-600">
+                        {t.type === 'issue' ? formatCurrency(t.amount).replace('GMD', '') : '-'}
+                      </td>
+                      <td className="px-4 py-3 align-top text-right font-mono text-emerald-600">
+                        {t.type !== 'issue' ? formatCurrency(t.amount).replace('GMD', '') : '-'}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 export const OperatorsView = ({ 
   newOpName, 

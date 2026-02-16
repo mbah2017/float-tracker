@@ -17,6 +17,11 @@ export const useFloatData = (rootId) => {
     return saved ? JSON.parse(saved) : {};
   });
 
+  const [settings, setSettings] = useState(() => {
+    const saved = localStorage.getItem(`float_settings_${rootId}`);
+    return saved ? JSON.parse(saved) : { reportName: 'Float Cashbook' };
+  });
+
   useEffect(() => {
     localStorage.setItem(`float_agents_${rootId}`, JSON.stringify(agents));
   }, [agents, rootId]);
@@ -28,6 +33,10 @@ export const useFloatData = (rootId) => {
   useEffect(() => {
     localStorage.setItem(`float_liquidity_${rootId}`, JSON.stringify(liquidity));
   }, [liquidity, rootId]);
+
+  useEffect(() => {
+    localStorage.setItem(`float_settings_${rootId}`, JSON.stringify(settings));
+  }, [settings, rootId]);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -150,6 +159,8 @@ export const useFloatData = (rootId) => {
     addTransaction,
     currentLiquidity,
     activeBalance,
-    updateLiquidity
+    updateLiquidity,
+    settings,
+    setSettings
   };
 };
