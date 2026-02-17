@@ -190,14 +190,20 @@ export const useFloatData = (rootId) => {
       cash: { in: 0, out: 0 }
     };
 
+    // totalOutstanding still comes from agents
     Object.values(agentBalances).forEach(b => {
-      issuedToday += b.issuedToday;
-      returnedToday += b.returnedToday;
       totalOutstanding += b.totalDue;
     });
 
+    // Sum ALL transactions for today for global totals and per-channel totals
     todaysTransactions.forEach(t => {
       const amount = parseFloat(t.amount) || 0;
+      
+      // Global totals
+      if (t.type === 'issue') issuedToday += amount;
+      if (t.type === 'return') returnedToday += amount;
+
+      // Channel specific
       if (channelStats[t.method]) {
         if (t.type === 'issue') channelStats[t.method].out += amount;
         if (t.type === 'return') channelStats[t.method].in += amount;
@@ -229,6 +235,10 @@ export const useFloatData = (rootId) => {
 
   const updateTransaction = (id, updatedData) => {
     setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updatedData } : t));
+  };
+
+  const deleteTransaction = (id) => {
+    setTransactions(prev => prev.filter(t => t.id !== id));
   };
 
   const closeDay = (discrepancyNotes = '') => {
@@ -281,21 +291,51 @@ export const useFloatData = (rootId) => {
     }));
   };
 
-  const createAdjustment = (method, amount, note = 'Reconciliation Adjustment') => {
-    const type = amount > 0 ? 'return' : 'issue';
-    const absAmount = Math.abs(amount);
-    
-    const adjTx = {
-      agentId: 'SYSTEM', // Special ID for system adjustments
-      type,
-      category: 'adjustment',
-      amount: absAmount,
-      method,
-      note,
-      performedBy: 'System'
-    };
-    
-    addTransaction(adjTx);
+  const createAdjustment = (method, diff, note = 'Reconciliation Adjustment') => {
+    if (Math.abs(diff) < 0.01) return;
+
+    setTransactions(prev => {
+      // Find if an adjustment exists in the latest state
+      const existingAdj = prev.find(t => 
+        t.date === today && 
+        t.agentId === 'SYSTEM' && 
+        t.method === method && 
+        t.category === 'adjustment'
+      );
+
+      if (existingAdj) {
+        const currentSignedAmount = existingAdj.type === 'return' ? existingAdj.amount : -existingAdj.amount;
+        const newSignedAmount = currentSignedAmount + diff;
+
+        if (Math.abs(newSignedAmount) < 0.01) {
+          // Remove it if no longer needed
+          return prev.filter(t => t.id !== existingAdj.id);
+        }
+
+        // Update it
+        return prev.map(t => t.id === existingAdj.id ? {
+          ...t,
+          amount: Math.abs(newSignedAmount),
+          type: newSignedAmount > 0 ? 'return' : 'issue',
+          timestamp: new Date().toISOString()
+        } : t);
+      } else {
+        // Create new one
+        const adjTx = {
+          id: generateId(),
+          date: today,
+          timestamp: new Date().toISOString(),
+          agentId: 'SYSTEM',
+          type: diff > 0 ? 'return' : 'issue',
+          category: 'adjustment',
+          amount: Math.abs(diff),
+          method,
+          note,
+          performedBy: 'System'
+        };
+        return [adjTx, ...prev];
+      }
+    });
   };
 
   return {
@@ -313,6 +353,7 @@ export const useFloatData = (rootId) => {
     addAgent,
     addTransaction,
     updateTransaction,
+    deleteTransaction,
     closeDay,
     togglePassiveUnlockOverride,
     createAdjustment,

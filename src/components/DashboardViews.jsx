@@ -146,7 +146,7 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
                         {Math.abs(diff) > 0.01 && (
                           <Button
                             variant="outline"
-                            onClick={() => createAdjustment(channel.id, -diff)}
+                            onClick={() => createAdjustment(channel.id, diff)}
                             className="py-1 px-2 text-[10px] h-7"
                           >
                             Adj
@@ -430,7 +430,7 @@ export const AgentsView = ({ agents, agentBalances, openModal, fileInputRef, han
   </div>
 );
 
-export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCurrency, today, setReportDate, PROVIDERS, settings, setSettings, currentLiquidity, stats, activeBalance, openModal }) => {
+export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCurrency, today, setReportDate, PROVIDERS, settings, setSettings, currentLiquidity, stats, activeBalance, openModal, deleteTransaction }) => {
   const [viewMode, setViewMode] = useState('summary'); // 'summary' or 'cashbook'
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState('');
@@ -450,8 +450,13 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
 
   const netBalance = cashbookTotals.totalCredit - cashbookTotals.totalDebit;
 
-  const expectedBalance = currentLiquidity.openingBalance + stats.returnedToday - stats.issuedToday;
-  const discrepancy = activeBalance - expectedBalance;
+  // Safe calculations for the UI
+  const safeOpening = currentLiquidity.openingBalance || 0;
+  const safeReturned = stats.returnedToday || 0;
+  const safeIssued = stats.issuedToday || 0;
+  const safeExpected = safeOpening + safeReturned - safeIssued;
+  const safeActive = activeBalance || 0;
+  const safeDiscrepancy = safeActive - safeExpected;
 
   const selectedAgent = agents.find(a => String(a.id) === String(selectedAgentId));
   const reportTitle = selectedAgent
@@ -509,28 +514,28 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
                 <div className="flex justify-between items-center py-2 border-b border-blue-100">
                   <span className="text-slate-600 font-medium text-sm">Opening Balance</span>
-                  <span className="font-bold text-slate-800">{formatCurrency(currentLiquidity.openingBalance)}</span>
+                  <span className="font-bold text-slate-800">{formatCurrency(safeOpening)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-blue-100">
                   <span className="text-slate-600 font-medium text-sm">Expected Closing</span>
-                  <span className="font-bold text-slate-900">{formatCurrency(expectedBalance)}</span>
+                  <span className="font-bold text-slate-900">{formatCurrency(safeExpected)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-blue-100">
                   <span className="text-slate-600 font-medium text-sm">Total Repayments</span>
-                  <span className="font-bold text-emerald-600">+{formatCurrency(stats.returnedToday).replace('GMD', '')}</span>
+                  <span className="font-bold text-emerald-600">+{formatCurrency(safeReturned).replace('GMD', '')}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-blue-100">
                   <span className="text-slate-600 font-medium text-sm">Actual Balance</span>
-                  <span className="font-bold text-slate-800">{formatCurrency(activeBalance)}</span>
+                  <span className="font-bold text-slate-800">{formatCurrency(safeActive)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-blue-100">
                   <span className="text-slate-600 font-medium text-sm">Total Issuance</span>
-                  <span className="font-bold text-red-600">-{formatCurrency(stats.issuedToday).replace('GMD', '')}</span>
+                  <span className="font-bold text-red-600">-{formatCurrency(safeIssued).replace('GMD', '')}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 bg-white/60 px-3 rounded-xl border border-blue-200 mt-2 shadow-sm">
                   <span className="font-black text-slate-800 text-sm italic">Discrepancy</span>
-                  <span className={`text-lg font-black ${Math.abs(discrepancy) > 0.01 ? 'text-red-700' : 'text-emerald-700'}`}>
-                    {formatCurrency(discrepancy)}
+                  <span className={`text-lg font-black ${Math.abs(safeDiscrepancy) > 0.01 ? 'text-red-700' : 'text-emerald-700'}`}>
+                    {formatCurrency(safeDiscrepancy)}
                   </span>
                 </div>
               </div>
@@ -620,6 +625,13 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
                       title="Edit Entry"
                     >
                       <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => confirm('Delete this transaction?') && deleteTransaction(t.id)}
+                      className="p-2 text-slate-200 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all shadow-sm"
+                      title="Delete Entry"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -721,7 +733,10 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
                         <div className="flex items-center justify-end gap-2">
                           {t.type === 'issue' ? formatCurrency(t.amount).replace('GMD', '') : '—'}
                           {t.type === 'issue' && (
-                            <button onClick={() => openModal('edit_transaction', t.id)} className="p-1.5 text-slate-200 hover:text-blue-600 transition-colors print:hidden"><Edit2 className="w-3.5 h-3.5" /></button>
+                            <div className="flex items-center">
+                              <button onClick={() => openModal('edit_transaction', t.id)} className="p-1.5 text-slate-200 hover:text-blue-600 transition-colors print:hidden"><Edit2 className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => confirm('Delete this transaction?') && deleteTransaction(t.id)} className="p-1.5 text-slate-100 hover:text-red-600 transition-colors print:hidden"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
                           )}
                         </div>
                       </td>
@@ -729,7 +744,10 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
                         <div className="flex items-center justify-end gap-2">
                           {t.type !== 'issue' ? formatCurrency(t.amount).replace('GMD', '') : '—'}
                           {t.type !== 'issue' && (
-                            <button onClick={() => openModal('edit_transaction', t.id)} className="p-1.5 text-slate-200 hover:text-blue-600 transition-colors print:hidden"><Edit2 className="w-3.5 h-3.5" /></button>
+                            <div className="flex items-center">
+                              <button onClick={() => openModal('edit_transaction', t.id)} className="p-1.5 text-slate-200 hover:text-blue-600 transition-colors print:hidden"><Edit2 className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => confirm('Delete this transaction?') && deleteTransaction(t.id)} className="p-1.5 text-slate-100 hover:text-red-600 transition-colors print:hidden"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
                           )}
                         </div>
                       </td>

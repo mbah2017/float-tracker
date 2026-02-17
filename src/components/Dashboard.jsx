@@ -44,6 +44,7 @@ export const Dashboard = ({ user, onLogout }) => {
     addAgent,
     addTransaction,
     updateTransaction,
+    deleteTransaction,
     currentLiquidity,
     activeBalance,
     updateLiquidity,
@@ -355,6 +356,7 @@ Served by: ${user.username}`;
                           stats={stats}
                           activeBalance={activeBalance}
                           openModal={openModal}
+                          deleteTransaction={deleteTransaction}
                         />          )}
           {activeTab === 'liquidity' && (
             <LiquidityView 
