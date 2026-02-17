@@ -185,6 +185,10 @@ export const useFloatData = (rootId) => {
     setTransactions(prev => [newTx, ...prev]);
   };
 
+  const updateTransaction = (id, updatedData) => {
+    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updatedData } : t));
+  };
+
   const closeDay = (discrepancyNotes = '') => {
     setLiquidity(prev => {
       const updatedCurrentDay = {
@@ -238,6 +242,7 @@ export const useFloatData = (rootId) => {
     setReportDate,
     addAgent,
     addTransaction,
+    updateTransaction,
     closeDay,
     togglePassiveUnlockOverride,
     currentLiquidity,

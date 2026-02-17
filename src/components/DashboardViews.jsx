@@ -31,12 +31,8 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
 
   const [discrepancyNotesInput, setDiscrepancyNotesInput] = useState(currentLiquidity.reconciliationNotes || '');
 
-
-
   const isPassiveLocked = (currentLiquidity.passiveBalanceLastUpdated &&
-
     (new Date() - new Date(currentLiquidity.passiveBalanceLastUpdated)) < (30 * 24 * 60 * 60 * 1000)) &&
-
     !isPassiveUnlockOverride;
 
   const totalOperationalLiquidity = activeBalance + stats.totalOutstanding;
@@ -65,21 +61,22 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
             <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
               <RefreshCw className="w-5 h-5 text-blue-600" /> Day Opening
             </h3>
-                        <Input
-                          label="Opening Balance (Cash + Digital)"
-                          type="number"
-                          value={currentLiquidity.openingBalance || ''}
-                          onChange={e => handleChange('openingBalance', e.target.value)}
-                          icon={currentLiquidity.closingBalance ? Lock : Wallet}
-                          placeholder="0.00"
-                          disabled={!!currentLiquidity.closingBalance}
-                        />
-                        {currentLiquidity.closingBalance && (
-                          <p className="text-xs text-amber-600 italic mt-2 flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" /> Locked: Today's opening balance was carried over from previous day's closing.
-                          </p>
-                        )}
-                        <p className="text-xs text-slate-500 italic">Enter the total liquidity carried over from yesterday.</p>          </Card>
+            <Input
+              label="Opening Balance (Cash + Digital)"
+              type="number"
+              value={currentLiquidity.openingBalance || ''}
+              onChange={e => handleChange('openingBalance', e.target.value)}
+              icon={currentLiquidity.closingBalance ? Lock : Wallet}
+              placeholder="0.00"
+              disabled={!!currentLiquidity.closingBalance}
+            />
+            {currentLiquidity.closingBalance && (
+              <p className="text-xs text-amber-600 italic mt-2 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> Locked: Today's opening balance was carried over from previous day's closing.
+              </p>
+            )}
+            <p className="text-xs text-slate-500 italic">Enter the total liquidity carried over from yesterday.</p>
+          </Card>
 
           <Card className="p-6">
             <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -203,25 +200,17 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
               </div>
             </div>
             
-                                    <div className="relative">
-            
-                                      <Input
-            
-                                        label="Total Fixed Assets"
-            
-                                        type="number"
-            
-                                        value={currentLiquidity.passiveBalance || ''}
-            
-                                        onChange={e => handleChange('passiveBalance', e.target.value)}
-            
-                                        disabled={isPassiveLocked}
-            
-                                        placeholder="0.00"
-            
-                                        icon={Lock}
-            
-                                      />              {isPassiveLocked && (
+            <div className="relative">
+              <Input
+                label="Total Fixed Assets"
+                type="number"
+                value={currentLiquidity.passiveBalance || ''}
+                onChange={e => handleChange('passiveBalance', e.target.value)}
+                disabled={isPassiveLocked}
+                placeholder="0.00"
+                icon={Lock}
+              />
+              {isPassiveLocked && (
                 <div className="mt-2 text-[10px] text-amber-600 bg-amber-50 p-2 rounded border border-amber-100 flex items-start gap-2">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                   <span>This field is locked for 30 days to ensure asset stability. Last updated: {new Date(currentLiquidity.passiveBalanceLastUpdated).toLocaleDateString()}</span>
@@ -343,7 +332,7 @@ export const AgentsView = ({ agents, agentBalances, openModal, fileInputRef, han
       </div>
     </div>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {agents.map(agent => {
+      {[...agents].sort((a, b) => a.name.localeCompare(b.name)).map(agent => {
         const bal = agentBalances[agent.id] || { issuedToday: 0, returnedToday: 0, prevDebt: 0, totalDue: 0 };
 
         return (
@@ -386,12 +375,18 @@ export const AgentsView = ({ agents, agentBalances, openModal, fileInputRef, han
   </div>
 );
 
-export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCurrency, today, setReportDate, PROVIDERS, settings, setSettings, currentLiquidity, stats, activeBalance }) => {
+export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCurrency, today, setReportDate, PROVIDERS, settings, setSettings, currentLiquidity, stats, activeBalance, openModal }) => {
   const [viewMode, setViewMode] = useState('summary'); // 'summary' or 'cashbook'
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [selectedAgentId, setSelectedAgentId] = useState('');
 
-  // Calculate totals for the cashbook footer
-  const cashbookTotals = todaysTransactions.reduce((acc, t) => {
+  // Filter transactions based on selected agent
+  const filteredTransactions = selectedAgentId
+    ? todaysTransactions.filter(t => String(t.agentId) === String(selectedAgentId))
+    : todaysTransactions;
+
+  // Calculate totals for the cashbook footer (uses filteredTransactions)
+  const cashbookTotals = filteredTransactions.reduce((acc, t) => {
     if (t.type === 'issue') {
       acc.totalDebit += t.amount;
     } else {
@@ -402,15 +397,21 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
 
   const netBalance = cashbookTotals.totalCredit - cashbookTotals.totalDebit;
 
-  // Reconciliation calculations for summary view
+  // Reconciliation calculations for summary view (uses global stats, not agent-specific)
+  // This section should only show when no specific agent is selected
   const expectedBalance = currentLiquidity.openingBalance + stats.returnedToday - stats.issuedToday;
   const discrepancy = activeBalance - expectedBalance;
+
+  const selectedAgent = agents.find(a => String(a.id) === String(selectedAgentId));
+  const reportTitle = selectedAgent
+    ? `${selectedAgent.name}'s Cashbook Report`
+    : (viewMode === 'summary' ? 'Daily Reconciliation' : 'Float Cashbook'); // Adjusted default title
 
   return (
     <div className="space-y-6 pb-20">
       <div className="flex justify-between items-center print:hidden">
         <h2 className="text-2xl font-bold text-slate-800">
-          {viewMode === 'summary' ? 'Daily Reconciliation' : 'Cashbook Report'}
+          {reportTitle}
         </h2>
         <div className="flex items-center gap-3">
           <input
@@ -419,6 +420,16 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
             value={today}
             onChange={(e) => setReportDate(e.target.value)}
           />
+          <select
+            value={selectedAgentId}
+            onChange={(e) => setSelectedAgentId(e.target.value)}
+            className="px-3 py-1 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Agents</option>
+            {[...agents].sort((a, b) => a.name.localeCompare(b.name)).map(agent => (
+              <option key={agent.id} value={agent.id}>{agent.name}</option>
+            ))}
+          </select>
           <div className="flex bg-slate-200 rounded-lg p-1">
             <button
               onClick={() => setViewMode('summary')}
@@ -439,44 +450,46 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
 
       {viewMode === 'summary' ? (
         <>
-          <Card className="p-6 border-blue-200 bg-blue-50/50 print:border-none print:shadow-none mb-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 print:text-xl">
-              <RefreshCw className="w-5 h-5 text-blue-600 print:hidden" /> Daily Reconciliation Summary
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center py-2 border-b border-blue-100">
-                <span className="text-slate-600 font-medium">Day Opening Balance</span>
-                <span className="font-semibold text-slate-800">{formatCurrency(currentLiquidity.openingBalance)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-blue-100">
-                <span className="text-slate-600 font-medium">Total Repayments (+)</span>
-                <span className="font-semibold text-emerald-600">{formatCurrency(stats.returnedToday)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-blue-100">
-                <span className="text-slate-600 font-medium">Total Loans Issued (-)</span>
-                <span className="font-semibold text-red-600">{formatCurrency(stats.issuedToday)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 mt-4 bg-blue-100/50 p-2 rounded border border-blue-200">
-                <span className="font-bold text-slate-700">Calculated Expected Closing Balance</span>
-                <span className="font-bold text-slate-900">{formatCurrency(expectedBalance)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-t border-blue-100 pt-4">
-                <span className="text-slate-600 font-medium">Actual Closing Balance (Cash + Digital)</span>
-                <span className="font-semibold text-slate-800">{formatCurrency(activeBalance)}</span>
-              </div>
-              <div className="flex justify-between items-center py-3 bg-blue-200/50 p-2 rounded border border-blue-300">
-                <span className="font-bold text-slate-800">Discrepancy</span>
-                <span className={`text-lg font-black ${Math.abs(discrepancy) > 0.01 ? 'text-red-700' : 'text-emerald-700'}`}>
-                  {formatCurrency(discrepancy)}
-                </span>
-              </div>
-              {currentLiquidity.reconciliationNotes && (
-                <div className="py-2 bg-blue-50 border border-blue-100 p-3 rounded text-sm text-slate-700 italic">
-                  <span className="font-bold">Notes:</span> {currentLiquidity.reconciliationNotes}
+          {!selectedAgentId && ( // Only show global reconciliation if no agent is selected
+            <Card className="p-6 border-blue-200 bg-blue-50/50 print:border-none print:shadow-none mb-6">
+              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 print:text-xl">
+                <RefreshCw className="w-5 h-5 text-blue-600 print:hidden" /> Daily Reconciliation Summary
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-blue-100">
+                  <span className="text-slate-600 font-medium">Day Opening Balance</span>
+                  <span className="font-semibold text-slate-800">{formatCurrency(currentLiquidity.openingBalance)}</span>
                 </div>
-              )}
-            </div>
-          </Card>
+                <div className="flex justify-between items-center py-2 border-b border-blue-100">
+                  <span className="text-slate-600 font-medium">Total Repayments (+)</span>
+                  <span className="font-semibold text-emerald-600">{formatCurrency(stats.returnedToday)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-blue-100">
+                  <span className="text-slate-600 font-medium">Total Loans Issued (-)</span>
+                  <span className="font-semibold text-red-600">{formatCurrency(stats.issuedToday)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 mt-4 bg-blue-100/50 p-2 rounded border border-blue-200">
+                  <span className="font-bold text-slate-700">Calculated Expected Closing Balance</span>
+                  <span className="font-bold text-slate-900">{formatCurrency(expectedBalance)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-t border-blue-100 pt-4">
+                  <span className="text-slate-600 font-medium">Actual Closing Balance (Cash + Digital)</span>
+                  <span className="font-semibold text-slate-800">{formatCurrency(activeBalance)}</span>
+                </div>
+                <div className="flex justify-between items-center py-3 bg-blue-200/50 p-2 rounded border border-blue-300">
+                  <span className="font-bold text-slate-800">Discrepancy</span>
+                  <span className={`text-lg font-black ${Math.abs(discrepancy) > 0.01 ? 'text-red-700' : 'text-emerald-700'}`}>
+                    {formatCurrency(discrepancy)}
+                  </span>
+                </div>
+                {currentLiquidity.reconciliationNotes && (
+                  <div className="py-2 bg-blue-50 border border-blue-100 p-3 rounded text-sm text-slate-700 italic">
+                    <span className="font-bold">Notes:</span> {currentLiquidity.reconciliationNotes}
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
 
           <Card className="overflow-x-auto">
             <table className="w-full text-sm text-left">
@@ -491,7 +504,7 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
                 </tr>
               </thead>
               <tbody>
-                {agents.map(agent => {
+                {(selectedAgent ? [selectedAgent] : [...agents].sort((a, b) => a.name.localeCompare(b.name))).map(agent => { // Filtered by selected agent
                    const bal = agentBalances[agent.id] || { issuedToday: 0, returnedToday: 0, prevDebt: 0, totalDue: 0 };
                    return (
                      <tr key={agent.id} className="bg-white border-b hover:bg-slate-50">
@@ -514,8 +527,8 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
 
           <h3 className="text-lg font-bold text-slate-800 mt-8 print:hidden">Transactions for {today}</h3>
           <div className="space-y-2 print:hidden">
-            {todaysTransactions.length === 0 && <p className="text-slate-500 italic">No transactions recorded today.</p>}
-            {todaysTransactions.slice().reverse().map(t => {
+            {filteredTransactions.length === 0 && <p className="text-slate-500 italic">No transactions recorded for this period.</p>}
+            {filteredTransactions.slice().reverse().map(t => { // Uses filteredTransactions
               const provider = PROVIDERS.find(p => p.id === t.method) || PROVIDERS[0];
               const ProviderIcon = provider.icon;
               const isCheckout = t.category === 'checkout';
@@ -548,15 +561,24 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
                       </div>
                     </div>
                   </div>
-                  <span className={`font-bold ${t.type === 'issue' ? 'text-slate-700' : 'text-emerald-600'}`}>
-                    {t.type === 'issue' ? '-' : '+'}{formatCurrency(t.amount)}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className={`font-bold ${t.type === 'issue' ? 'text-slate-700' : 'text-emerald-600'}`}>
+                      {t.type === 'issue' ? '-' : '+'}{formatCurrency(t.amount)}
+                    </span>
+                    <button
+                      onClick={() => openModal('edit_transaction', t.id)}
+                      className="p-1 text-slate-400 hover:text-blue-500 transition-colors print:hidden"
+                      title="Edit Transaction"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               );
             })}
           </div>
         </>
-      ) : (
+      ) : ( // Cashbook view content
         <div className="bg-white border border-slate-200 shadow-sm print:shadow-none print:border-none">
           {/* Header mimicking PDF */}
           <div className="p-4 sm:p-8 border-b border-slate-200">
@@ -623,12 +645,12 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-              {todaysTransactions.length === 0 ? (
+              {filteredTransactions.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="px-4 py-8 text-center text-slate-400 italic">No transactions recorded for this period.</td>
                 </tr>
               ) : (
-                todaysTransactions.map((t) => {
+                filteredTransactions.map((t) => {
                   const agentName = agents.find(a => String(a.id) === String(t.agentId))?.name || 'Unknown Agent';
                   const providerLabel = PROVIDERS.find(p => p.id === t.method)?.label || t.method;
                   const dateStr = new Date(t.timestamp).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: '2-digit' });
@@ -654,10 +676,32 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
                          )}
                       </td>
                       <td className="px-3 sm:px-4 py-3 align-top text-right font-mono text-red-600 text-xs sm:text-sm">
-                        {t.type === 'issue' ? formatCurrency(t.amount).replace('GMD', '') : '-'}
+                        <div className="flex items-center justify-end gap-2">
+                          {t.type === 'issue' ? formatCurrency(t.amount).replace('GMD', '') : '-'}
+                          {t.type === 'issue' && (
+                            <button
+                              onClick={() => openModal('edit_transaction', t.id)}
+                              className="p-1 text-slate-300 hover:text-blue-500 transition-colors print:hidden"
+                              title="Edit Transaction"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="px-3 sm:px-4 py-3 align-top text-right font-mono text-emerald-600 text-xs sm:text-sm">
-                        {t.type !== 'issue' ? formatCurrency(t.amount).replace('GMD', '') : '-'}
+                        <div className="flex items-center justify-end gap-2">
+                          {t.type !== 'issue' ? formatCurrency(t.amount).replace('GMD', '') : '-'}
+                          {t.type !== 'issue' && (
+                            <button
+                              onClick={() => openModal('edit_transaction', t.id)}
+                              className="p-1 text-slate-300 hover:text-blue-500 transition-colors print:hidden"
+                              title="Edit Transaction"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -669,7 +713,8 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
       </div>
     )}
   </div>
-);};
+);
+};
 
 export const OperatorsView = ({ 
   newOpName, 

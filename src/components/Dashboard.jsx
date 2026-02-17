@@ -32,7 +32,6 @@ export const Dashboard = ({ user, onLogout }) => {
   const {
     agents,
     setAgents,
-    // eslint-disable-next-line no-unused-vars
     todaysTransactions,
     reportTransactions,
     agentBalances,
@@ -44,6 +43,7 @@ export const Dashboard = ({ user, onLogout }) => {
     setReportDate,
     addAgent,
     addTransaction,
+    updateTransaction,
     currentLiquidity,
     activeBalance,
     updateLiquidity,
@@ -58,6 +58,7 @@ export const Dashboard = ({ user, onLogout }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('issue');
   const [selectedAgentId, setSelectedAgentId] = useState('');
+  const [editingTransactionId, setEditingTransactionId] = useState(null);
   
   // Transaction Form State
   const [amount, setAmount] = useState('');
@@ -83,15 +84,29 @@ export const Dashboard = ({ user, onLogout }) => {
 
   const fileInputRef = useRef(null);
 
-  const openModal = (type, agentId = '') => {
+  const openModal = (type, id = '') => {
     setModalType(type);
-    setSelectedAgentId(agentId);
-    setAmount('');
-    setMethod('cash');
-    setNote('');
     setConfirmed(false);
-    setReturnCategory('payment');
     setSendWhatsapp(true);
+
+    if (type === 'edit_transaction') {
+      const tx = todaysTransactions.find(t => t.id === id);
+      if (tx) {
+        setEditingTransactionId(id);
+        setSelectedAgentId(tx.agentId);
+        setAmount(tx.amount.toString());
+        setMethod(tx.method);
+        setNote(tx.note || '');
+        setReturnCategory(tx.category);
+      }
+    } else {
+      setSelectedAgentId(id);
+      setAmount('');
+      setMethod('cash');
+      setNote('');
+      setReturnCategory('payment');
+      setEditingTransactionId(null);
+    }
     
     // Reset agent form
     setAgentName('');
@@ -107,6 +122,16 @@ export const Dashboard = ({ user, onLogout }) => {
     if (!amount || !selectedAgentId || selectedAgentId === '') return;
     const parsedAmount = parseFloat(amount);
 
+    if (modalType === 'edit_transaction' && editingTransactionId) {
+      updateTransaction(editingTransactionId, {
+        amount: parsedAmount,
+        method: method,
+        note: note
+      });
+      closeModal();
+      return;
+    }
+
     const txData = {
       agentId: String(selectedAgentId),
       type: modalType,
@@ -117,7 +142,7 @@ export const Dashboard = ({ user, onLogout }) => {
       performedBy: user.username
     };
 
-    if (sendWhatsapp) {
+    if (sendWhatsapp && modalType !== 'edit_transaction') {
       const agent = agents.find(a => String(a.id) === String(selectedAgentId));
       if (agent && agent.phone) {
         const currentStats = agentBalances[agent.id] || { totalDue: 0 };
@@ -325,6 +350,7 @@ Served by: ${user.username}`;
                           currentLiquidity={currentLiquidity}
                           stats={stats}
                           activeBalance={activeBalance}
+                          openModal={openModal}
                         />          )}
           {activeTab === 'liquidity' && (
             <LiquidityView 
@@ -358,7 +384,7 @@ Served by: ${user.username}`;
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
               <h3 className="text-xl font-bold text-slate-800">
-                {modalType === 'add_agent' ? 'Add New Sub-Agent' : modalType === 'issue' ? 'Issue Float' : 'Return Funds'}
+                {modalType === 'add_agent' ? 'Add New Sub-Agent' : modalType === 'edit_transaction' ? 'Edit Transaction' : modalType === 'issue' ? 'Issue Float' : 'Return Funds'}
               </h3>
               <button onClick={closeModal} className="p-2 hover:bg-slate-100 rounded-full text-slate-500"><X className="w-5 h-5"/></button>
             </div>
