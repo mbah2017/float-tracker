@@ -32,11 +32,13 @@ export const Dashboard = ({ user, onLogout }) => {
   const {
     agents,
     setAgents,
+    // eslint-disable-next-line no-unused-vars
     todaysTransactions,
     reportTransactions,
     agentBalances,
     reportBalances,
     stats,
+    // eslint-disable-next-line no-unused-vars
     today,
     reportDate,
     setReportDate,
@@ -46,7 +48,9 @@ export const Dashboard = ({ user, onLogout }) => {
     activeBalance,
     updateLiquidity,
     settings,
-    setSettings
+    setSettings,
+    closeDay,
+    togglePassiveUnlockOverride
   } = useFloatData(rootId);
 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -306,29 +310,34 @@ Served by: ${user.username}`;
         </aside>
 
         <main className="flex-1">
-          {activeTab === 'dashboard' && <DashboardView stats={stats} formatCurrency={formatCurrency} activeBalance={activeBalance} />}
+          {activeTab === 'dashboard' && <DashboardView stats={stats} formatCurrency={formatCurrency} activeBalance={activeBalance} openingBalance={currentLiquidity.openingBalance} />}
           {activeTab === 'reports' && (
-            <ReportView 
-              agents={agents} 
-              agentBalances={reportBalances} 
-              todaysTransactions={reportTransactions} 
-              formatCurrency={formatCurrency} 
-              today={reportDate} 
-              setReportDate={setReportDate}
-              PROVIDERS={PROVIDERS} 
-              settings={settings} 
-              setSettings={setSettings} 
-            />
-          )}
+                        <ReportView
+                          agents={agents}
+                          agentBalances={reportBalances}
+                          todaysTransactions={reportTransactions}
+                          formatCurrency={formatCurrency}
+                          today={reportDate}
+                          setReportDate={setReportDate}
+                          PROVIDERS={PROVIDERS}
+                          settings={settings}
+                          setSettings={setSettings}
+                          currentLiquidity={currentLiquidity}
+                          stats={stats}
+                          activeBalance={activeBalance}
+                        />          )}
           {activeTab === 'liquidity' && (
             <LiquidityView 
-              currentLiquidity={currentLiquidity} 
-              updateLiquidity={updateLiquidity} 
-              activeBalance={activeBalance}
-              stats={stats}
-              formatCurrency={formatCurrency}
-            />
-          )}
+                                          currentLiquidity={currentLiquidity}
+                                          updateLiquidity={updateLiquidity}
+                                          activeBalance={activeBalance}
+                                          stats={stats}
+                                          formatCurrency={formatCurrency}
+                                          closeDay={closeDay}
+                                          isMaster={isMaster}
+                                          isPassiveUnlockOverride={currentLiquidity.isPassiveUnlockOverride}
+                                          togglePassiveUnlockOverride={togglePassiveUnlockOverride}
+                                        />          )}
           {activeTab === 'agents' && <AgentsView agents={agents} agentBalances={agentBalances} openModal={openModal} fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} downloadTemplate={downloadTemplate} formatCurrency={formatCurrency} />}
           {activeTab === 'operators' && isMaster && (
             <OperatorsView

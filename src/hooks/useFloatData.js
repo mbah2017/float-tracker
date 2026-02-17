@@ -49,24 +49,30 @@ export const useFloatData = (rootId) => {
       aps: 0,
       orange: 0,
       nafa: 0,
+      westernUnion: 0,
       cash: 0,
       passiveBalance: 0,
-      passiveBalanceLastUpdated: null
+      passiveBalanceLastUpdated: null,
+      closingBalance: 0,
+      reconciliationNotes: '',
+      isPassiveUnlockOverride: false
     };
     return liquidity[today] || defaultLiquidity;
   }, [liquidity, today]);
 
   const activeBalance = useMemo(() => {
     const l = currentLiquidity;
-    return l.bank + l.wave + l.aps + l.orange + l.nafa + l.cash;
+    return l.bank + l.wave + l.aps + l.orange + l.nafa + l.westernUnion + l.cash;
   }, [currentLiquidity]);
 
   const updateLiquidity = (data) => {
     setLiquidity(prev => {
       const current = prev[today] || {
         openingBalance: 0,
-        bank: 0, wave: 0, aps: 0, orange: 0, nafa: 0, cash: 0,
-        passiveBalance: 0, passiveBalanceLastUpdated: null
+        bank: 0, wave: 0, aps: 0, orange: 0, nafa: 0, westernUnion: 0, cash: 0,
+        passiveBalance: 0, passiveBalanceLastUpdated: null,
+        closingBalance: 0, reconciliationNotes: '',
+        isPassiveUnlockOverride: false
       };
 
       const updated = { ...current, ...data };
@@ -179,6 +185,45 @@ export const useFloatData = (rootId) => {
     setTransactions(prev => [newTx, ...prev]);
   };
 
+  const closeDay = (discrepancyNotes = '') => {
+    setLiquidity(prev => {
+      const updatedCurrentDay = {
+        ...prev[today],
+        closingBalance: activeBalance,
+        reconciliationNotes: discrepancyNotes,
+      };
+
+      // Calculate tomorrow's date
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+      // Set tomorrow's opening balance to today's closing balance
+      const updatedTomorrow = {
+        ...prev[tomorrowStr],
+        openingBalance: activeBalance, // Carry over active balance as next day's opening
+        // Ensure that isPassiveUnlockOverride is reset for tomorrow
+        isPassiveUnlockOverride: false,
+      };
+
+      return {
+        ...prev,
+        [today]: updatedCurrentDay,
+        [tomorrowStr]: updatedTomorrow,
+      };
+    });
+  };
+
+  const togglePassiveUnlockOverride = () => {
+    setLiquidity(prev => ({
+      ...prev,
+      [today]: {
+        ...prev[today],
+        isPassiveUnlockOverride: !prev[today]?.isPassiveUnlockOverride,
+      },
+    }));
+  };
+
   return {
     agents,
     setAgents,
@@ -193,6 +238,8 @@ export const useFloatData = (rootId) => {
     setReportDate,
     addAgent,
     addTransaction,
+    closeDay,
+    togglePassiveUnlockOverride,
     currentLiquidity,
     activeBalance,
     updateLiquidity,
