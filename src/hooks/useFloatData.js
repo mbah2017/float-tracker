@@ -43,7 +43,10 @@ export const useFloatData = (rootId) => {
 
   const currentLiquidity = useMemo(() => {
     const defaultLiquidity = {
-      openingBalance: 0,
+      openingBalances: {
+        bank: 0, wave: 0, aps: 0, orange: 0, nafa: 0, westernUnion: 0, cash: 0
+      },
+      openingBalance: 0, // Total opening balance for backward compatibility/legacy views
       bank: 0,
       wave: 0,
       aps: 0,
@@ -57,7 +60,18 @@ export const useFloatData = (rootId) => {
       reconciliationNotes: '',
       isPassiveUnlockOverride: false
     };
-    return liquidity[today] || defaultLiquidity;
+    const rawData = liquidity[today] || defaultLiquidity;
+    const data = { ...rawData };
+    
+    // Ensure openingBalances object exists for new data
+    if (!data.openingBalances) {
+      data.openingBalances = defaultLiquidity.openingBalances;
+    }
+
+    // Derived total opening balance for backward compatibility
+    data.openingBalance = Object.values(data.openingBalances).reduce((sum, val) => sum + val, 0);
+    
+    return data;
   }, [liquidity, today]);
 
   const activeBalance = useMemo(() => {
@@ -68,6 +82,7 @@ export const useFloatData = (rootId) => {
   const updateLiquidity = (data) => {
     setLiquidity(prev => {
       const current = prev[today] || {
+        openingBalances: { bank: 0, wave: 0, aps: 0, orange: 0, nafa: 0, westernUnion: 0, cash: 0 },
         openingBalance: 0,
         bank: 0, wave: 0, aps: 0, orange: 0, nafa: 0, westernUnion: 0, cash: 0,
         passiveBalance: 0, passiveBalanceLastUpdated: null,
@@ -75,7 +90,11 @@ export const useFloatData = (rootId) => {
         isPassiveUnlockOverride: false
       };
 
+      // Handle nested openingBalances if provided
       const updated = { ...current, ...data };
+      if (data.openingBalances) {
+        updated.openingBalances = { ...current.openingBalances, ...data.openingBalances };
+      }
       
       // If passiveBalance is changed, update timestamp
       if (data.passiveBalance !== undefined && data.passiveBalance !== current.passiveBalance) {
@@ -155,6 +174,16 @@ export const useFloatData = (rootId) => {
     let issuedToday = 0;
     let returnedToday = 0;
     let totalOutstanding = 0;
+    
+    const channelStats = {
+      bank: { in: 0, out: 0 },
+      wave: { in: 0, out: 0 },
+      aps: { in: 0, out: 0 },
+      orange: { in: 0, out: 0 },
+      nafa: { in: 0, out: 0 },
+      westernUnion: { in: 0, out: 0 },
+      cash: { in: 0, out: 0 }
+    };
 
     Object.values(agentBalances).forEach(b => {
       issuedToday += b.issuedToday;
@@ -162,8 +191,15 @@ export const useFloatData = (rootId) => {
       totalOutstanding += b.totalDue;
     });
 
-    return { issuedToday, returnedToday, totalOutstanding };
-  }, [agentBalances]);
+    todaysTransactions.forEach(t => {
+      if (channelStats[t.method]) {
+        if (t.type === 'issue') channelStats[t.method].out += t.amount;
+        if (t.type === 'return') channelStats[t.method].in += t.amount;
+      }
+    });
+
+    return { issuedToday, returnedToday, totalOutstanding, channelStats };
+  }, [agentBalances, todaysTransactions]);
 
   const addAgent = (name, location, phone) => {
     const newAgent = {
@@ -191,8 +227,9 @@ export const useFloatData = (rootId) => {
 
   const closeDay = (discrepancyNotes = '') => {
     setLiquidity(prev => {
+      const currentData = prev[today] || {};
       const updatedCurrentDay = {
-        ...prev[today],
+        ...currentData,
         closingBalance: activeBalance,
         reconciliationNotes: discrepancyNotes,
       };
@@ -202,11 +239,21 @@ export const useFloatData = (rootId) => {
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-      // Set tomorrow's opening balance to today's closing balance
+      // Set tomorrow's opening balances to today's ACTUAL balances
+      const nextDayOpeningBalances = {
+        bank: currentData.bank || 0,
+        wave: currentData.wave || 0,
+        aps: currentData.aps || 0,
+        orange: currentData.orange || 0,
+        nafa: currentData.nafa || 0,
+        westernUnion: currentData.westernUnion || 0,
+        cash: currentData.cash || 0
+      };
+
       const updatedTomorrow = {
-        ...prev[tomorrowStr],
-        openingBalance: activeBalance, // Carry over active balance as next day's opening
-        // Ensure that isPassiveUnlockOverride is reset for tomorrow
+        ...(prev[tomorrowStr] || {}),
+        openingBalances: nextDayOpeningBalances,
+        openingBalance: activeBalance, // Total carry over
         isPassiveUnlockOverride: false,
       };
 
@@ -228,6 +275,23 @@ export const useFloatData = (rootId) => {
     }));
   };
 
+  const createAdjustment = (method, amount, note = 'Reconciliation Adjustment') => {
+    const type = amount > 0 ? 'return' : 'issue';
+    const absAmount = Math.abs(amount);
+    
+    const adjTx = {
+      agentId: 'SYSTEM', // Special ID for system adjustments
+      type,
+      category: 'adjustment',
+      amount: absAmount,
+      method,
+      note,
+      performedBy: 'System'
+    };
+    
+    addTransaction(adjTx);
+  };
+
   return {
     agents,
     setAgents,
@@ -245,6 +309,7 @@ export const useFloatData = (rootId) => {
     updateTransaction,
     closeDay,
     togglePassiveUnlockOverride,
+    createAdjustment,
     currentLiquidity,
     activeBalance,
     updateLiquidity,

@@ -50,7 +50,8 @@ export const Dashboard = ({ user, onLogout }) => {
     settings,
     setSettings,
     closeDay,
-    togglePassiveUnlockOverride
+    togglePassiveUnlockOverride,
+    createAdjustment
   } = useFloatData(rootId);
 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -306,10 +307,13 @@ Served by: ${user.username}`;
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto p-4 md:flex md:gap-6 mt-4">
-        <aside className={`fixed inset-y-0 left-0 bg-white w-64 shadow-2xl transform transition-transform duration-200 ease-in-out z-40 md:sticky md:top-24 md:transform-none md:shadow-none md:bg-transparent md:w-48 h-fit self-start ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <div className="p-4 md:hidden flex justify-end"><button onClick={() => setSidebarOpen(false)}><X className="w-6 h-6 text-slate-400" /></button></div>
-          <div className="space-y-2">
+      <div className="max-w-7xl mx-auto p-4 md:flex md:gap-6 lg:gap-8 mt-4">
+        <aside className={`fixed inset-y-0 left-0 bg-white w-72 shadow-2xl transform transition-transform duration-300 ease-in-out z-40 md:sticky md:top-24 md:transform-none md:shadow-none md:bg-transparent md:w-56 lg:w-64 h-fit self-start ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="p-4 md:hidden flex justify-between items-center border-b border-slate-100 mb-2">
+            <span className="font-bold text-blue-900">Menu</span>
+            <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X className="w-6 h-6 text-slate-400" /></button>
+          </div>
+          <div className="space-y-1.5 p-2 md:p-0">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: Wallet },
               { id: 'reports', label: 'Reports', icon: History },
@@ -317,24 +321,24 @@ Served by: ${user.username}`;
               { id: 'agents', label: 'Manage Agents', icon: Users },
               ...(isMaster ? [{ id: 'operators', label: 'Operators', icon: UserCog }] : []),
             ].map(item => (
-              <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${activeTab === item.id ? 'bg-white text-blue-700 shadow-sm border border-slate-100 md:shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>
-                <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-blue-600' : 'text-slate-400'}`} /> {item.label}
+              <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3.5 md:py-3 rounded-xl font-semibold transition-all ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm'}`}>
+                <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-white' : 'text-slate-400 group-hover:text-blue-600'}`} /> {item.label}
               </button>
             ))}
           </div>
-          <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-100 mx-2 md:mx-0">
-            <h4 className="font-bold text-blue-800 text-sm mb-1">Quick Action</h4>
-            <p className="text-xs text-blue-600 mb-3">Start the day by issuing float to your team.</p>
-            <Button variant="primary" className="w-full text-sm py-2" onClick={() => { setSidebarOpen(false); openModal('issue'); }}>Issue Float</Button>
+          <div className="mt-6 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 mx-2 md:mx-0 shadow-sm">
+            <h4 className="font-bold text-blue-900 text-sm mb-1">Quick Action</h4>
+            <p className="text-xs text-blue-700/70 mb-4 leading-relaxed">Instantly issue new float to any active sub-agent.</p>
+            <Button variant="primary" className="w-full text-sm py-2.5 shadow-sm" onClick={() => { setSidebarOpen(false); openModal('issue'); }}>Issue Float</Button>
           </div>
-          <div className="mt-auto p-4 md:hidden border-t border-slate-100">
-             <button onClick={onLogout} className="flex items-center gap-2 text-red-600 font-medium w-full p-2 hover:bg-red-50 rounded-lg">
+          <div className="mt-8 md:hidden px-2">
+             <button onClick={onLogout} className="flex items-center justify-center gap-2 text-red-600 font-bold w-full p-3 bg-red-50 hover:bg-red-100 transition-colors rounded-xl border border-red-100">
                <LogOut className="w-5 h-5" /> Logout
              </button>
           </div>
         </aside>
 
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           {activeTab === 'dashboard' && <DashboardView stats={stats} formatCurrency={formatCurrency} activeBalance={activeBalance} openingBalance={currentLiquidity.openingBalance} />}
           {activeTab === 'reports' && (
                         <ReportView
@@ -361,9 +365,10 @@ Served by: ${user.username}`;
                                           formatCurrency={formatCurrency}
                                           closeDay={closeDay}
                                           isMaster={isMaster}
-                                          isPassiveUnlockOverride={currentLiquidity.isPassiveUnlockOverride}
-                                          togglePassiveUnlockOverride={togglePassiveUnlockOverride}
-                                        />          )}
+                                                        isPassiveUnlockOverride={currentLiquidity.isPassiveUnlockOverride}
+                                                        togglePassiveUnlockOverride={togglePassiveUnlockOverride}
+                                                        createAdjustment={createAdjustment}
+                                                      />          )}
           {activeTab === 'agents' && <AgentsView agents={agents} agentBalances={agentBalances} openModal={openModal} fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} downloadTemplate={downloadTemplate} formatCurrency={formatCurrency} />}
           {activeTab === 'operators' && isMaster && (
             <OperatorsView
