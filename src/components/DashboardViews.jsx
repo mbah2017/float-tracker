@@ -263,10 +263,10 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
                   variant="primary"
                   icon={RefreshCw}
                 >
-                  {currentLiquidity.closingBalance ? `Re-Close Day (${formatCurrency(currentLiquidity.closingBalance)})` : 'Finalize & Close Day'}
+                  {currentLiquidity.closingBalance !== null ? `Re-Close Day (${formatCurrency(currentLiquidity.closingBalance)})` : 'Finalize & Close Day'}
                 </Button>
                 
-                {currentLiquidity.closingBalance && (
+                {currentLiquidity.closingBalance !== null && (
                   <p className="text-center text-[10px] text-slate-400 italic">Day finalized. Re-closing will carry over the latest balance to tomorrow.</p>
                 )}
               </div>
@@ -762,7 +762,7 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
     )}
   </div>
 );
-};
+}
 
 export const OperatorsView = ({ 
   newOpName, 

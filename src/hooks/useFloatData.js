@@ -56,7 +56,7 @@ export const useFloatData = (rootId) => {
       cash: 0,
       passiveBalance: 0,
       passiveBalanceLastUpdated: null,
-      closingBalance: 0,
+      closingBalance: null,
       reconciliationNotes: '',
       isPassiveUnlockOverride: false
     };
@@ -87,7 +87,7 @@ export const useFloatData = (rootId) => {
         openingBalance: 0,
         bank: 0, wave: 0, aps: 0, orange: 0, nafa: 0, westernUnion: 0, cash: 0,
         passiveBalance: 0, passiveBalanceLastUpdated: null,
-        closingBalance: 0, reconciliationNotes: '',
+        closingBalance: null, reconciliationNotes: '',
         isPassiveUnlockOverride: false
       };
 
@@ -244,9 +244,19 @@ export const useFloatData = (rootId) => {
   const closeDay = (discrepancyNotes = '') => {
     setLiquidity(prev => {
       const currentData = prev[today] || {};
+      
+      const currentActiveBalance = 
+        (currentData.bank || 0) +
+        (currentData.wave || 0) +
+        (currentData.aps || 0) +
+        (currentData.orange || 0) +
+        (currentData.nafa || 0) +
+        (currentData.westernUnion || 0) +
+        (currentData.cash || 0);
+
       const updatedCurrentDay = {
         ...currentData,
-        closingBalance: activeBalance,
+        closingBalance: currentActiveBalance,
         reconciliationNotes: discrepancyNotes,
       };
 
@@ -269,7 +279,7 @@ export const useFloatData = (rootId) => {
       const updatedTomorrow = {
         ...(prev[tomorrowStr] || {}),
         openingBalances: nextDayOpeningBalances,
-        openingBalance: activeBalance, // Total carry over
+        openingBalance: currentActiveBalance, // Total carry over
         isPassiveUnlockOverride: false,
       };
 
