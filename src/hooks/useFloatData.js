@@ -60,23 +60,24 @@ export const useFloatData = (rootId) => {
       reconciliationNotes: '',
       isPassiveUnlockOverride: false
     };
-    const rawData = liquidity[today] || defaultLiquidity;
-    const data = { ...rawData };
+    const rawData = liquidity[today] || {};
+    const data = { ...defaultLiquidity, ...rawData };
     
-    // Ensure openingBalances object exists for new data
-    if (!data.openingBalances) {
-      data.openingBalances = defaultLiquidity.openingBalances;
-    }
+    // Ensure openingBalances object exists and is merged correctly
+    data.openingBalances = { 
+      ...defaultLiquidity.openingBalances, 
+      ...(rawData.openingBalances || {}) 
+    };
 
     // Derived total opening balance for backward compatibility
-    data.openingBalance = Object.values(data.openingBalances).reduce((sum, val) => sum + val, 0);
+    data.openingBalance = Object.values(data.openingBalances).reduce((sum, val) => sum + (val || 0), 0);
     
     return data;
   }, [liquidity, today]);
 
   const activeBalance = useMemo(() => {
     const l = currentLiquidity;
-    return l.bank + l.wave + l.aps + l.orange + l.nafa + l.westernUnion + l.cash;
+    return (l.bank || 0) + (l.wave || 0) + (l.aps || 0) + (l.orange || 0) + (l.nafa || 0) + (l.westernUnion || 0) + (l.cash || 0);
   }, [currentLiquidity]);
 
   const updateLiquidity = (data) => {
@@ -126,12 +127,14 @@ export const useFloatData = (rootId) => {
       const agent = balances[t.agentId];
       if (!agent) return;
 
+      const amount = parseFloat(t.amount) || 0;
+
       if (t.date === today) {
-        if (t.type === 'issue') agent.issuedToday += t.amount;
-        if (t.type === 'return') agent.returnedToday += t.amount;
+        if (t.type === 'issue') agent.issuedToday += amount;
+        if (t.type === 'return') agent.returnedToday += amount;
       } else if (t.date < today) {
-        if (t.type === 'issue') agent.prevDebt += t.amount;
-        if (t.type === 'return') agent.prevDebt -= t.amount;
+        if (t.type === 'issue') agent.prevDebt += amount;
+        if (t.type === 'return') agent.prevDebt -= amount;
       }
     });
 
@@ -153,12 +156,14 @@ export const useFloatData = (rootId) => {
       const agent = balances[t.agentId];
       if (!agent) return;
 
+      const amount = parseFloat(t.amount) || 0;
+
       if (t.date === reportDate) {
-        if (t.type === 'issue') agent.issuedToday += t.amount;
-        if (t.type === 'return') agent.returnedToday += t.amount;
+        if (t.type === 'issue') agent.issuedToday += amount;
+        if (t.type === 'return') agent.returnedToday += amount;
       } else if (t.date < reportDate) {
-        if (t.type === 'issue') agent.prevDebt += t.amount;
-        if (t.type === 'return') agent.prevDebt -= t.amount;
+        if (t.type === 'issue') agent.prevDebt += amount;
+        if (t.type === 'return') agent.prevDebt -= amount;
       }
     });
 
@@ -192,9 +197,10 @@ export const useFloatData = (rootId) => {
     });
 
     todaysTransactions.forEach(t => {
+      const amount = parseFloat(t.amount) || 0;
       if (channelStats[t.method]) {
-        if (t.type === 'issue') channelStats[t.method].out += t.amount;
-        if (t.type === 'return') channelStats[t.method].in += t.amount;
+        if (t.type === 'issue') channelStats[t.method].out += amount;
+        if (t.type === 'return') channelStats[t.method].in += amount;
       }
     });
 

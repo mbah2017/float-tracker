@@ -45,8 +45,16 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
     (new Date() - new Date(currentLiquidity.passiveBalanceLastUpdated)) < (30 * 24 * 60 * 60 * 1000)) &&
     !isPassiveUnlockOverride;
 
-  const totalOperationalLiquidity = activeBalance + stats.totalOutstanding;
+  const totalOperationalLiquidity = (activeBalance || 0) + (stats.totalOutstanding || 0);
   
+  // Safe calculations for the UI
+  const safeOpening = currentLiquidity.openingBalance || 0;
+  const safeReturned = stats.returnedToday || 0;
+  const safeIssued = stats.issuedToday || 0;
+  const safeExpected = safeOpening + safeReturned - safeIssued;
+  const safeActive = activeBalance || 0;
+  const safeDiscrepancy = safeActive - safeExpected;
+
   const handleBalanceChange = (field, value) => {
     const parsed = value === '' ? 0 : parseFloat(value);
     updateLiquidity({ [field]: parsed });
@@ -149,23 +157,22 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
                   );
                 })}
               </tbody>
-              <tfoot className="bg-slate-900 text-white font-bold text-[10px] sm:text-xs">
-                <tr>
-                  <td className="px-4 py-4 rounded-bl-xl">Totals</td>
-                  <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(currentLiquidity.openingBalance).replace('GMD', '')}</td>
-                  <td className="px-4 py-4 text-right whitespace-nowrap">
-                    {(stats.returnedToday - stats.issuedToday) >= 0 ? '+' : ''}
-                    {formatCurrency(stats.returnedToday - stats.issuedToday).replace('GMD', '')}
-                  </td>
-                  <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(currentLiquidity.openingBalance + stats.returnedToday - stats.issuedToday).replace('GMD', '')}</td>
-                  <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(activeBalance).replace('GMD', '')}</td>
-                  <td className="px-4 py-4 text-right whitespace-nowrap">
-                    {formatCurrency(activeBalance - (currentLiquidity.openingBalance + stats.returnedToday - stats.issuedToday)).replace('GMD', '')}
-                  </td>
-                  <td className="px-4 py-4 rounded-br-xl"></td>
-                </tr>
-              </tfoot>
-            </table>
+                              <tfoot className="bg-slate-900 text-white font-bold text-[10px] sm:text-xs">
+                                <tr>
+                                  <td className="px-4 py-4 rounded-bl-xl">Totals</td>
+                                  <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(safeOpening).replace('GMD', '')}</td>
+                                  <td className="px-4 py-4 text-right whitespace-nowrap">
+                                    {(safeReturned - safeIssued) >= 0 ? '+' : ''}
+                                    {formatCurrency(safeReturned - safeIssued).replace('GMD', '')}
+                                  </td>
+                                  <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(safeExpected).replace('GMD', '')}</td>
+                                  <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(safeActive).replace('GMD', '')}</td>
+                                  <td className="px-4 py-4 text-right whitespace-nowrap">
+                                    {formatCurrency(safeDiscrepancy).replace('GMD', '')}
+                                  </td>
+                                  <td className="px-4 py-4 rounded-br-xl"></td>
+                                </tr>
+                              </tfoot>            </table>
           </div>
         </Card>
 
@@ -232,12 +239,12 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
               <div className="space-y-5">
                 <div className="flex justify-between items-center p-4 bg-white rounded-xl border border-amber-100 shadow-sm">
                   <span className="text-slate-600 font-bold text-sm">Overall Discrepancy</span>
-                  <span className={`text-xl font-black ${Math.abs(activeBalance - (currentLiquidity.openingBalance + stats.returnedToday - stats.issuedToday)) > 0.01 ? 'text-red-600' : 'text-emerald-600'}`}>
-                    {formatCurrency(activeBalance - (currentLiquidity.openingBalance + stats.returnedToday - stats.issuedToday))}
+                  <span className={`text-xl font-black ${Math.abs(safeDiscrepancy) > 0.01 ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {formatCurrency(safeDiscrepancy)}
                   </span>
                 </div>
 
-                {Math.abs(activeBalance - (currentLiquidity.openingBalance + stats.returnedToday - stats.issuedToday)) > 0.01 && (
+                {Math.abs(safeDiscrepancy) > 0.01 && (
                   <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                     <Input
                       label="Explanation for Discrepancy"
@@ -251,7 +258,7 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
 
                 <Button
                   onClick={() => closeDay(discrepancyNotesInput)}
-                  disabled={Math.abs(activeBalance - (currentLiquidity.openingBalance + stats.returnedToday - stats.issuedToday)) > 0.01 && !discrepancyNotesInput}
+                  disabled={Math.abs(safeDiscrepancy) > 0.01 && !discrepancyNotesInput}
                   className="w-full mt-2 py-4 text-base font-black shadow-lg shadow-blue-200"
                   variant="primary"
                   icon={RefreshCw}
