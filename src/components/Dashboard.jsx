@@ -16,18 +16,23 @@ import {
   CheckCircle2,
   AlertCircle,
   AlertTriangle,
-  MessageCircle
+  MessageCircle,
+  BookOpen
 } from 'lucide-react';
 import { Button, Badge, Input } from './common';
 import { DashboardView, AgentsView, ReportView, OperatorsView, LiquidityView } from './DashboardViews';
+import { TrainingManualView } from './TrainingManualView';
 import { useFloatData } from '../hooks/useFloatData';
 import { formatCurrency } from '../utils/formatters';
 import { PROVIDERS } from '../constants';
 import { hashPassword, generateId } from '../utils/crypto';
+import { hasPermission, PERMISSIONS } from '../constants/permissions';
 
 export const Dashboard = ({ user, onLogout }) => {
   const isMaster = user.role === 'master' || !user.role;
   const rootId = isMaster ? user.id : user.masterId;
+
+  const canManageOperators = hasPermission(user, PERMISSIONS.MANAGE_OPERATORS);
 
   const {
     agents,
@@ -77,7 +82,7 @@ export const Dashboard = ({ user, onLogout }) => {
 
   // Operator state
   const [operators, setOperators] = useState(() => {
-    if (!isMaster) return [];
+    if (!canManageOperators) return [];
     const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
     return allUsers.filter(u => u.masterId === user.id);
   });
@@ -204,6 +209,8 @@ Served by: ${user.username}`;
 
   const handleAddOperator = async () => {
     if (!newOpName || !newOpPass) return;
+    if (!canManageOperators) return;
+
     const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
 
     if (allUsers.find(u => u.username === newOpName)) {
@@ -230,6 +237,7 @@ Served by: ${user.username}`;
   };
 
   const handleDeleteOperator = (opId) => {
+    if (!canManageOperators) return;
     if (!confirm('Are you sure you want to remove this operator?')) return;
     const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
     const updatedUsers = allUsers.filter(u => u.id !== opId);
@@ -320,7 +328,8 @@ Served by: ${user.username}`;
               { id: 'reports', label: 'Reports', icon: History },
               { id: 'liquidity', label: 'Liquidity', icon: Banknote },
               { id: 'agents', label: 'Manage Agents', icon: Users },
-              ...(isMaster ? [{ id: 'operators', label: 'Operators', icon: UserCog }] : []),
+              ...(canManageOperators ? [{ id: 'operators', label: 'Operators', icon: UserCog }] : []),
+              { id: 'training', label: 'Training Manual', icon: BookOpen },
             ].map(item => (
               <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3.5 md:py-3 rounded-xl font-semibold transition-all ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm'}`}>
                 <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-white' : 'text-slate-400 group-hover:text-blue-600'}`} /> {item.label}
@@ -372,7 +381,7 @@ Served by: ${user.username}`;
                                                         createAdjustment={createAdjustment}
                                                       />          )}
           {activeTab === 'agents' && <AgentsView agents={agents} agentBalances={agentBalances} openModal={openModal} fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} downloadTemplate={downloadTemplate} formatCurrency={formatCurrency} />}
-          {activeTab === 'operators' && isMaster && (
+          {activeTab === 'operators' && canManageOperators && (
             <OperatorsView
               newOpName={newOpName}
               setNewOpName={setNewOpName}
@@ -383,6 +392,7 @@ Served by: ${user.username}`;
               handleDeleteOperator={handleDeleteOperator}
             />
           )}
+          {activeTab === 'training' && <TrainingManualView />}
         </main>
       </div>
 
