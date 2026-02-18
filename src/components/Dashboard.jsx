@@ -33,6 +33,7 @@ export const Dashboard = ({ user, onLogout }) => {
   const rootId = isMaster ? user.id : user.masterId;
 
   const canManageOperators = hasPermission(user, PERMISSIONS.MANAGE_OPERATORS);
+  const canViewLiquidity = hasPermission(user, PERMISSIONS.VIEW_LIQUIDITY) || hasPermission(user, PERMISSIONS.MANAGE_LIQUIDITY);
 
   const {
     agents,
@@ -88,6 +89,7 @@ export const Dashboard = ({ user, onLogout }) => {
   });
   const [newOpName, setNewOpName] = useState('');
   const [newOpPass, setNewOpPass] = useState('');
+  const [selectedPermissions, setSelectedPermissions] = useState(ROLE_PERMISSIONS.operator);
 
   const fileInputRef = useRef(null);
 
@@ -225,7 +227,8 @@ Served by: ${user.username}`;
       password: hashedPass,
       businessName: user.businessName,
       role: 'operator',
-      masterId: user.id
+      masterId: user.id,
+      permissions: selectedPermissions
     };
 
     const updatedUsers = [...allUsers, newOp];
@@ -233,6 +236,7 @@ Served by: ${user.username}`;
     setOperators(updatedUsers.filter(u => u.masterId === user.id));
     setNewOpName('');
     setNewOpPass('');
+    setSelectedPermissions(ROLE_PERMISSIONS.operator);
     alert('Operator added successfully!');
   };
 
@@ -326,7 +330,7 @@ Served by: ${user.username}`;
             {[
               { id: 'dashboard', label: 'Dashboard', icon: Wallet },
               { id: 'reports', label: 'Reports', icon: History },
-              { id: 'liquidity', label: 'Liquidity', icon: Banknote },
+              ...(canViewLiquidity ? [{ id: 'liquidity', label: 'Liquidity', icon: Banknote }] : []),
               { id: 'agents', label: 'Manage Agents', icon: Users },
               ...(canManageOperators ? [{ id: 'operators', label: 'Operators', icon: UserCog }] : []),
               { id: 'training', label: 'Training Manual', icon: BookOpen },
@@ -390,6 +394,9 @@ Served by: ${user.username}`;
               handleAddOperator={handleAddOperator}
               operators={operators}
               handleDeleteOperator={handleDeleteOperator}
+              selectedPermissions={selectedPermissions}
+              setSelectedPermissions={setSelectedPermissions}
+              PERMISSIONS={PERMISSIONS}
             />
           )}
           {activeTab === 'training' && <TrainingManualView />}

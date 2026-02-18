@@ -819,8 +819,19 @@ export const OperatorsView = ({
   setNewOpPass, 
   handleAddOperator, 
   operators, 
-  handleDeleteOperator 
+  handleDeleteOperator,
+  selectedPermissions,
+  setSelectedPermissions,
+  PERMISSIONS
 }) => {
+  const togglePermission = (perm) => {
+    setSelectedPermissions(prev => 
+      prev.includes(perm) 
+        ? prev.filter(p => p !== perm) 
+        : [...prev, perm]
+    );
+  };
+
   return (
     <div className="space-y-6 pb-20">
       <div className="flex justify-between items-center">
@@ -833,12 +844,35 @@ export const OperatorsView = ({
             <div className="bg-blue-100 p-3 rounded-2xl text-blue-600 shadow-inner"><UserCog className="w-6 h-6" /></div>
             <div>
                 <h3 className="text-lg font-bold text-slate-800">Create Operator</h3>
-                <p className="text-xs text-slate-500">Add staff to help manage float</p>
+                <p className="text-xs text-slate-500">Add staff and assign permissions</p>
             </div>
           </div>
           <div className="space-y-4">
             <Input label="Username" value={newOpName} onChange={e => setNewOpName(e.target.value)} placeholder="e.g. fatou_staff" className="shadow-sm" />
             <Input label="Password" type="password" value={newOpPass} onChange={e => setNewOpPass(e.target.value)} placeholder="Secret123" className="shadow-sm" />
+            
+            <div className="space-y-2 pt-2">
+              <label className="text-xs font-black uppercase tracking-widest text-slate-400">Permissions</label>
+              <div className="grid grid-cols-1 gap-2">
+                {Object.entries(PERMISSIONS).map(([key, value]) => {
+                  if (value === 'manage_operators') return null; // Only Master has this
+                  return (
+                    <label key={key} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors border border-slate-100">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedPermissions.includes(value)}
+                        onChange={() => togglePermission(value)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <span className="block text-xs font-bold text-slate-700">{key.replace(/_/g, ' ')}</span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
             <Button onClick={handleAddOperator} className="w-full py-4 font-black shadow-lg shadow-blue-100">Create Operator Account</Button>
           </div>
         </Card>
@@ -859,7 +893,9 @@ export const OperatorsView = ({
                     </div>
                     <div>
                       <p className="font-bold text-sm text-slate-800 uppercase tracking-tight">{op.username}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Staff Access</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                        {op.permissions?.length || 0} permissions assigned
+                      </p>
                     </div>
                   </div>
                   <button onClick={() => handleDeleteOperator(op.id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
