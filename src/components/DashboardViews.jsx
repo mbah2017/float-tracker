@@ -10,63 +10,46 @@ import {
   Download,
   LogOut,
   RefreshCw,
-  User,
-  Trash2,
-  UserCog,
-  History,
-  Banknote,
-  Building2,
-  Smartphone,
-  Globe,
-  Lock,
-  Unlock,
-  AlertTriangle,
-  Scale,
-  CheckCircle2,
-  Edit2,
-  MessageCircle
+  User, 
+  Trash2, 
+  UserCog, 
+  History, 
+  Banknote, 
+  Building2, 
+  Smartphone, 
+  Globe, 
+  Lock, 
+  Unlock, 
+  AlertTriangle, 
+  Scale, 
+  CheckCircle2, 
+  Edit2, 
+  MessageCircle 
 } from 'lucide-react';
 import { Card, Button, Badge, Input } from './common';
+import { ChannelReconciliationTable } from './ChannelReconciliationTable';
+import { PassiveBalanceCard } from './PassiveBalanceCard';
+import { DayEndFinalizationCard } from './DayEndFinalizationCard';
 
-export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance, stats, formatCurrency, closeDay, isMaster, isPassiveUnlockOverride, togglePassiveUnlockOverride, createAdjustment }) => {
-
-  const CHANNELS = [
-    { id: 'cash', label: 'Cash on Hand', icon: Banknote },
-    { id: 'bank', label: 'Bank Account', icon: Building2 },
-    { id: 'wave', label: 'Wave Wallet', icon: Smartphone },
-    { id: 'aps', label: 'APS Wallet', icon: Globe },
-    { id: 'orange', label: 'Orange Money', icon: Smartphone },
-    { id: 'nafa', label: 'NAFA Wallet', icon: Globe },
-    { id: 'westernUnion', label: 'Western Union', icon: Globe }
-  ];
-
-  const [discrepancyNotesInput, setDiscrepancyNotesInput] = useState(currentLiquidity.reconciliationNotes || '');
-
-  const isPassiveLocked = (currentLiquidity.passiveBalanceLastUpdated &&
-    (new Date() - new Date(currentLiquidity.passiveBalanceLastUpdated)) < (30 * 24 * 60 * 60 * 1000)) &&
-    !isPassiveUnlockOverride;
-
-  const totalOperationalLiquidity = (activeBalance || 0) + (stats.totalOutstanding || 0);
+export const LiquidityView = ({ 
+  currentLiquidity, 
+  updateLiquidity, 
+  stats, 
+  formatCurrency, 
+  closeDay, 
+  isMaster, 
+  isPassiveUnlockOverride, 
+  togglePassiveUnlockOverride, 
+  createAdjustment 
+}) => {
+  // Calculate activeBalance directly from currentLiquidity.actualBalances
+  const activeBalance = Object.values(currentLiquidity.actualBalances || {}).reduce((sum, val) => sum + (val || 0), 0);
+  const totalOperationalLiquidity = activeBalance + (stats.totalOutstanding || 0);
   
-  // Safe calculations for the UI
-  const safeOpening = currentLiquidity.openingBalance || 0;
-  const safeReturned = stats.returnedToday || 0;
-  const safeIssued = stats.issuedToday || 0;
-  const safeExpected = safeOpening + safeReturned - safeIssued;
-  const safeActive = activeBalance || 0;
-  const safeDiscrepancy = safeActive - safeExpected;
-
-  const handleBalanceChange = (field, value) => {
-    const parsed = value === '' ? 0 : parseFloat(value);
-    updateLiquidity({ [field]: parsed });
-  };
-
-  const handleOpeningBalanceChange = (channelId, value) => {
-    const parsed = value === '' ? 0 : parseFloat(value);
-    updateLiquidity({ 
-      openingBalances: { [channelId]: parsed } 
-    });
-  };
+  // Calculations for the UI
+  const openingTotal = Object.values(currentLiquidity.openingBalances || {}).reduce((sum, val) => sum + (val || 0), 0);
+  const expectedClosingTotal = openingTotal + (stats.returnedToday || 0) - (stats.issuedToday || 0);
+  const overallDiscrepancy = activeBalance - expectedClosingTotal;
 
   return (
     <div className="space-y-6 pb-20">
@@ -76,202 +59,42 @@ export const LiquidityView = ({ currentLiquidity, updateLiquidity, activeBalance
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        <Card className="p-0 sm:p-6 overflow-hidden">
-          <div className="p-6 pb-0 sm:pb-6">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <Scale className="w-5 h-5 text-blue-600" /> Channel Reconciliation
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-[10px] sm:text-xs text-slate-500 uppercase bg-slate-50 border-b">
-                <tr>
-                  <th className="px-4 py-3 min-w-[140px]">Channel</th>
-                  <th className="px-4 py-3 text-right">Opening</th>
-                  <th className="px-4 py-3 text-right whitespace-nowrap">Today +/-</th>
-                  <th className="px-4 py-3 text-right">Expected</th>
-                  <th className="px-4 py-3 text-right min-w-[120px]">Actual</th>
-                  <th className="px-4 py-3 text-right">Diff</th>
-                  <th className="px-4 py-3 text-center print:hidden">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {CHANNELS.map(channel => {
-                  const opening = currentLiquidity.openingBalances?.[channel.id] || 0;
-                  const channelStat = stats.channelStats?.[channel.id] || { in: 0, out: 0 };
-                  const netToday = channelStat.in - channelStat.out;
-                  const expected = opening + netToday;
-                  const actual = currentLiquidity[channel.id] || 0;
-                  const diff = actual - expected;
-                  const Icon = channel.icon;
-
-                  return (
-                    <tr key={channel.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 bg-slate-100 rounded-lg text-slate-500 shrink-0">
-                            <Icon className="w-3.5 h-3.5" />
-                          </div>
-                          <span className="font-bold text-slate-700 text-xs sm:text-sm">{channel.label}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-right">
-                        <input
-                          type="number"
-                          value={opening || ''}
-                          onChange={(e) => handleOpeningBalanceChange(channel.id, e.target.value)}
-                          disabled={!!currentLiquidity.closingBalance}
-                          placeholder="0.00"
-                          className="w-20 sm:w-24 text-right bg-transparent border-b border-transparent hover:border-slate-200 focus:border-blue-500 outline-none transition-all disabled:opacity-50 font-mono text-xs sm:text-sm"
-                        />
-                      </td>
-                      <td className={`px-4 py-4 text-right font-medium text-xs sm:text-sm ${netToday >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {netToday > 0 ? '+' : ''}{formatCurrency(netToday).replace('GMD', '')}
-                      </td>
-                      <td className="px-4 py-4 text-right font-semibold text-slate-600 text-xs sm:text-sm">
-                        {formatCurrency(expected).replace('GMD', '')}
-                      </td>
-                      <td className="px-4 py-4 text-right">
-                        <input
-                          type="number"
-                          value={currentLiquidity[channel.id] || ''}
-                          onChange={(e) => handleBalanceChange(channel.id, e.target.value)}
-                          placeholder="0.00"
-                          className="w-20 sm:w-24 text-right border border-slate-200 rounded px-2 py-1.5 focus:border-blue-500 outline-none font-mono text-xs sm:text-sm"
-                        />
-                      </td>
-                      <td className={`px-4 py-4 text-right font-black text-xs sm:text-sm ${Math.abs(diff) > 0.01 ? 'text-red-600' : 'text-emerald-600'}`}>
-                        {Math.abs(diff) > 0.01 ? formatCurrency(diff).replace('GMD', '') : '—'}
-                      </td>
-                      <td className="px-4 py-4 text-center print:hidden">
-                        {Math.abs(diff) > 0.01 && (
-                          <Button
-                            variant="outline"
-                            onClick={() => createAdjustment(channel.id, diff)}
-                            className="py-1 px-2 text-[10px] h-7"
-                          >
-                            Adj
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-                              <tfoot className="bg-slate-900 text-white font-bold text-[10px] sm:text-xs">
-                                <tr>
-                                  <td className="px-4 py-4 rounded-bl-xl">Totals</td>
-                                  <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(safeOpening).replace('GMD', '')}</td>
-                                  <td className="px-4 py-4 text-right whitespace-nowrap">
-                                    {(safeReturned - safeIssued) >= 0 ? '+' : ''}
-                                    {formatCurrency(safeReturned - safeIssued).replace('GMD', '')}
-                                  </td>
-                                  <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(safeExpected).replace('GMD', '')}</td>
-                                  <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(safeActive).replace('GMD', '')}</td>
-                                  <td className="px-4 py-4 text-right whitespace-nowrap">
-                                    {formatCurrency(safeDiscrepancy).replace('GMD', '')}
-                                  </td>
-                                  <td className="px-4 py-4 rounded-br-xl"></td>
-                                </tr>
-                              </tfoot>            </table>
-          </div>
-        </Card>
+        <ChannelReconciliationTable 
+          currentLiquidity={currentLiquidity}
+          updateLiquidity={updateLiquidity}
+          stats={stats}
+          formatCurrency={formatCurrency}
+          createAdjustment={createAdjustment}
+          openingTotal={openingTotal}
+          expectedClosingTotal={expectedClosingTotal}
+          activeBalance={activeBalance}
+          overallDiscrepancy={overallDiscrepancy}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
-            <Card className="p-6 shadow-sm border-slate-100">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <Lock className="w-5 h-5 text-slate-400" /> Passive Balance
-                  </h3>
-                  <p className="text-xs text-slate-500">Fixed assets and long-term reserves</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {isPassiveLocked ? (
-                    <Badge color="slate"><Lock className="w-3 h-3 mr-1" /> Locked</Badge>
-                  ) : (
-                    <Badge color="green"><Unlock className="w-3 h-3 mr-1" /> Open</Badge>
-                  )}
-                  {isMaster && (
-                    <Button
-                      variant="outline"
-                      onClick={togglePassiveUnlockOverride}
-                      className="text-[10px] py-1 px-2 h-7"
-                    >
-                      {currentLiquidity.isPassiveUnlockOverride ? 'Enable Lock' : 'Admin Unlock'}
-                    </Button>
-                  )}
-                </div>
-              </div>
-              
-              <div className="relative">
-                <Input
-                  label="Total Fixed Assets Value"
-                  type="number"
-                  value={currentLiquidity.passiveBalance || ''}
-                  onChange={e => handleBalanceChange('passiveBalance', e.target.value)}
-                  disabled={isPassiveLocked}
-                  placeholder="0.00"
-                  icon={Lock}
-                />
-                {isPassiveLocked && (
-                  <div className="mt-2 text-[10px] text-amber-600 bg-amber-50 p-2.5 rounded-lg border border-amber-100 flex items-start gap-2">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                    <span>This field is locked for 30 days to ensure asset stability. Last updated: {new Date(currentLiquidity.passiveBalanceLastUpdated).toLocaleDateString()}</span>
-                  </div>
-                )}
-              </div>
-            </Card>
+            <PassiveBalanceCard
+              currentLiquidity={currentLiquidity}
+              updateLiquidity={updateLiquidity}
+              isMaster={isMaster}
+              isPassiveUnlockOverride={isPassiveUnlockOverride}
+              togglePassiveUnlockOverride={togglePassiveUnlockOverride}
+            />
 
             <Card className="p-6 bg-gradient-to-br from-blue-600 to-blue-800 text-white border-none shadow-xl shadow-blue-100">
-              <p className="text-blue-100 text-xs font-bold uppercase tracking-[0.1em] mb-1">Daily Operational Liquidity</p>
+              <p className="text-blue-100 text-xs font-bold uppercase tracking-[0.1em] mb-1">Total Operational Liquidity</p>
               <h2 className="text-3xl font-black">{formatCurrency(totalOperationalLiquidity)}</h2>
               <p className="text-[10px] text-blue-200/80 mt-3 leading-relaxed">Sum of all active wallet balances and outstanding debt from your agent network.</p>
             </Card>
           </div>
 
           <div className="space-y-6">
-            <Card className="p-6 border-amber-100 bg-amber-50/50 shadow-sm">
-              <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-amber-600" /> Day-End Finalization
-              </h3>
-              
-              <div className="space-y-5">
-                <div className="flex justify-between items-center p-4 bg-white rounded-xl border border-amber-100 shadow-sm">
-                  <span className="text-slate-600 font-bold text-sm">Overall Discrepancy</span>
-                  <span className={`text-xl font-black ${Math.abs(safeDiscrepancy) > 0.01 ? 'text-red-600' : 'text-emerald-600'}`}>
-                    {formatCurrency(safeDiscrepancy)}
-                  </span>
-                </div>
-
-                {Math.abs(safeDiscrepancy) > 0.01 && (
-                  <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                    <Input
-                      label="Explanation for Discrepancy"
-                      value={discrepancyNotesInput}
-                      onChange={e => setDiscrepancyNotesInput(e.target.value)}
-                      placeholder="Why is there a shortage or surplus?"
-                      className="mb-0 shadow-sm"
-                    />
-                  </div>
-                )}
-
-                <Button
-                  onClick={() => closeDay(discrepancyNotesInput)}
-                  disabled={Math.abs(safeDiscrepancy) > 0.01 && !discrepancyNotesInput}
-                  className="w-full mt-2 py-4 text-base font-black shadow-lg shadow-blue-200"
-                  variant="primary"
-                  icon={RefreshCw}
-                >
-                  {currentLiquidity.closingBalance !== null ? `Re-Close Day (${formatCurrency(currentLiquidity.closingBalance)})` : 'Finalize & Close Day'}
-                </Button>
-                
-                {currentLiquidity.closingBalance !== null && (
-                  <p className="text-center text-[10px] text-slate-400 italic">Day finalized. Re-closing will carry over the latest balance to tomorrow.</p>
-                )}
-              </div>
-            </Card>
+            <DayEndFinalizationCard
+              currentLiquidity={currentLiquidity}
+              formatCurrency={formatCurrency}
+              closeDay={closeDay}
+              overallDiscrepancy={overallDiscrepancy}
+            />
           </div>
         </div>
       </div>
@@ -328,7 +151,7 @@ export const DashboardView = ({ stats, formatCurrency, activeBalance, openingBal
         <div className="p-5">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Active Balance</p>
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Actual Balance</p>
               <h2 className="text-2xl font-bold text-blue-600">{formatCurrency(activeBalance)}</h2>
             </div>
             <div className="p-2 bg-blue-50 rounded-xl">
@@ -451,13 +274,11 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
 
   const netBalance = cashbookTotals.totalCredit - cashbookTotals.totalDebit;
 
-  // Safe calculations for the UI
-  const safeOpening = currentLiquidity.openingBalance || 0;
-  const safeReturned = stats.returnedToday || 0;
-  const safeIssued = stats.issuedToday || 0;
-  const safeExpected = safeOpening + safeReturned - safeIssued;
-  const safeActive = activeBalance || 0;
-  const safeDiscrepancy = safeActive - safeExpected;
+  // Calculations for the UI
+  const openingTotal = (currentLiquidity.openingBalance || 0);
+  const expectedClosingTotal = openingTotal + (stats.returnedToday || 0) - (stats.issuedToday || 0);
+  const calculatedActiveBalance = Object.values(currentLiquidity.actualBalances || {}).reduce((sum, val) => sum + (val || 0), 0);
+  const overallDiscrepancy = calculatedActiveBalance - expectedClosingTotal;
 
   const selectedAgent = agents.find(a => String(a.id) === String(selectedAgentId));
   const reportTitle = selectedAgent
@@ -562,28 +383,28 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
                 <div className="flex justify-between items-center py-2 border-b border-blue-100">
                   <span className="text-slate-600 font-medium text-sm">Opening Balance</span>
-                  <span className="font-bold text-slate-800">{formatCurrency(safeOpening)}</span>
+                  <span className="font-bold text-slate-800">{formatCurrency(openingTotal)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-blue-100">
                   <span className="text-slate-600 font-medium text-sm">Expected Closing</span>
-                  <span className="font-bold text-slate-900">{formatCurrency(safeExpected)}</span>
+                  <span className="font-bold text-slate-900">{formatCurrency(expectedClosingTotal)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-blue-100">
                   <span className="text-slate-600 font-medium text-sm">Total Repayments</span>
-                  <span className="font-bold text-emerald-600">+{formatCurrency(safeReturned).replace('GMD', '')}</span>
+                  <span className="font-bold text-emerald-600">+{formatCurrency(stats.returnedToday).replace('GMD', '')}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-blue-100">
-                  <span className="text-slate-600 font-medium text-sm">Actual Balance</span>
-                  <span className="font-bold text-slate-800">{formatCurrency(safeActive)}</span>
+                  <span className="text-slate-600 font-medium text-sm">Total Actual Balance</span>
+                  <span className="font-bold text-slate-800">{formatCurrency(calculatedActiveBalance)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-blue-100">
                   <span className="text-slate-600 font-medium text-sm">Total Issuance</span>
-                  <span className="font-bold text-red-600">-{formatCurrency(safeIssued).replace('GMD', '')}</span>
+                  <span className="font-bold text-red-600">-{formatCurrency(stats.issuedToday).replace('GMD', '')}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 bg-white/60 px-3 rounded-xl border border-blue-200 mt-2 shadow-sm">
                   <span className="font-black text-slate-800 text-sm italic">Discrepancy</span>
-                  <span className={`text-lg font-black ${Math.abs(safeDiscrepancy) > 0.01 ? 'text-red-700' : 'text-emerald-700'}`}>
-                    {formatCurrency(safeDiscrepancy)}
+                  <span className={`text-lg font-black ${Math.abs(overallDiscrepancy) > 0.01 ? 'text-red-700' : 'text-emerald-700'}`}>
+                    {formatCurrency(overallDiscrepancy)}
                   </span>
                 </div>
               </div>

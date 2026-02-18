@@ -42,18 +42,13 @@ export const useFloatData = (rootId) => {
   const [reportDate, setReportDate] = useState(today);
 
   const currentLiquidity = useMemo(() => {
+    const defaultBalances = {
+      bank: 0, wave: 0, aps: 0, orange: 0, nafa: 0, westernUnion: 0, cash: 0
+    };
     const defaultLiquidity = {
-      openingBalances: {
-        bank: 0, wave: 0, aps: 0, orange: 0, nafa: 0, westernUnion: 0, cash: 0
-      },
-      openingBalance: 0, // Total opening balance for backward compatibility/legacy views
-      bank: 0,
-      wave: 0,
-      aps: 0,
-      orange: 0,
-      nafa: 0,
-      westernUnion: 0,
-      cash: 0,
+      openingBalances: defaultBalances,
+      actualBalances: defaultBalances,
+      openingBalance: 0,
       passiveBalance: 0,
       passiveBalanceLastUpdated: null,
       closingBalance: null,
@@ -63,13 +58,15 @@ export const useFloatData = (rootId) => {
     const rawData = liquidity[today] || {};
     const data = { ...defaultLiquidity, ...rawData };
     
-    // Ensure openingBalances object exists and is merged correctly
     data.openingBalances = { 
-      ...defaultLiquidity.openingBalances, 
+      ...defaultBalances, 
       ...(rawData.openingBalances || {}) 
     };
+    data.actualBalances = {
+      ...defaultBalances,
+      ...(rawData.actualBalances || {})
+    };
 
-    // Derived total opening balance for backward compatibility
     data.openingBalance = Object.values(data.openingBalances).reduce((sum, val) => sum + (val || 0), 0);
     
     return data;
@@ -77,30 +74,52 @@ export const useFloatData = (rootId) => {
 
   const activeBalance = useMemo(() => {
     const l = currentLiquidity;
-    return (l.bank || 0) + (l.wave || 0) + (l.aps || 0) + (l.orange || 0) + (l.nafa || 0) + (l.westernUnion || 0) + (l.cash || 0);
+    return Object.values(l.actualBalances).reduce((sum, val) => sum + (val || 0), 0);
   }, [currentLiquidity]);
 
   const updateLiquidity = (data) => {
     setLiquidity(prev => {
+      const defaultBalances = { bank: 0, wave: 0, aps: 0, orange: 0, nafa: 0, westernUnion: 0, cash: 0 };
       const current = prev[today] || {
-        openingBalances: { bank: 0, wave: 0, aps: 0, orange: 0, nafa: 0, westernUnion: 0, cash: 0 },
-        openingBalance: 0,
-        bank: 0, wave: 0, aps: 0, orange: 0, nafa: 0, westernUnion: 0, cash: 0,
+        openingBalances: defaultBalances,
+        actualBalances: defaultBalances,
         passiveBalance: 0, passiveBalanceLastUpdated: null,
         closingBalance: null, reconciliationNotes: '',
         isPassiveUnlockOverride: false
       };
 
-      // Handle nested openingBalances if provided
       const updated = { ...current, ...data };
+      
       if (data.openingBalances) {
         updated.openingBalances = { ...current.openingBalances, ...data.openingBalances };
       }
+
+      const channelKeys = Object.keys(defaultBalances);
+      let updatedActualBalances = { ...current.actualBalances };
+      let actualBalancesUpdated = false;
+
+      for (const key of channelKeys) {
+        if (data[key] !== undefined) {
+          updatedActualBalances[key] = data[key];
+          delete updated[key];
+          actualBalancesUpdated = true;
+        }
+      }
       
-      // If passiveBalance is changed, update timestamp
+      if (data.actualBalances) {
+        updatedActualBalances = { ...updatedActualBalances, ...data.actualBalances };
+        actualBalancesUpdated = true;
+      }
+
+      if (actualBalancesUpdated) {
+        updated.actualBalances = updatedActualBalances;
+      }
+      
       if (data.passiveBalance !== undefined && data.passiveBalance !== current.passiveBalance) {
         updated.passiveBalanceLastUpdated = new Date().toISOString();
       }
+
+      updated.openingBalance = Object.values(updated.openingBalances).reduce((sum, val) => sum + (val || 0), 0);
 
       return {
         ...prev,
@@ -190,20 +209,16 @@ export const useFloatData = (rootId) => {
       cash: { in: 0, out: 0 }
     };
 
-    // totalOutstanding still comes from agents
     Object.values(agentBalances).forEach(b => {
       totalOutstanding += b.totalDue;
     });
 
-    // Sum ALL transactions for today for global totals and per-channel totals
     todaysTransactions.forEach(t => {
       const amount = parseFloat(t.amount) || 0;
       
-      // Global totals
       if (t.type === 'issue') issuedToday += amount;
       if (t.type === 'return') returnedToday += amount;
 
-      // Channel specific
       if (channelStats[t.method]) {
         if (t.type === 'issue') channelStats[t.method].out += amount;
         if (t.type === 'return') channelStats[t.method].in += amount;
@@ -244,15 +259,7 @@ export const useFloatData = (rootId) => {
   const closeDay = (discrepancyNotes = '') => {
     setLiquidity(prev => {
       const currentData = prev[today] || {};
-      
-      const currentActiveBalance = 
-        (currentData.bank || 0) +
-        (currentData.wave || 0) +
-        (currentData.aps || 0) +
-        (currentData.orange || 0) +
-        (currentData.nafa || 0) +
-        (currentData.westernUnion || 0) +
-        (currentData.cash || 0);
+      const currentActiveBalance = Object.values(currentData.actualBalances || {}).reduce((sum, val) => sum + (val || 0), 0);
 
       const updatedCurrentDay = {
         ...currentData,
@@ -260,26 +267,16 @@ export const useFloatData = (rootId) => {
         reconciliationNotes: discrepancyNotes,
       };
 
-      // Calculate tomorrow's date
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-      // Set tomorrow's opening balances to today's ACTUAL balances
-      const nextDayOpeningBalances = {
-        bank: currentData.bank || 0,
-        wave: currentData.wave || 0,
-        aps: currentData.aps || 0,
-        orange: currentData.orange || 0,
-        nafa: currentData.nafa || 0,
-        westernUnion: currentData.westernUnion || 0,
-        cash: currentData.cash || 0
-      };
+      const nextDayOpeningBalances = { ...updatedCurrentDay.actualBalances };
 
       const updatedTomorrow = {
         ...(prev[tomorrowStr] || {}),
         openingBalances: nextDayOpeningBalances,
-        openingBalance: currentActiveBalance, // Total carry over
+        openingBalance: currentActiveBalance,
         isPassiveUnlockOverride: false,
       };
 
@@ -305,7 +302,6 @@ export const useFloatData = (rootId) => {
     if (Math.abs(diff) < 0.01) return;
 
     setTransactions(prev => {
-      // Find if an adjustment exists in the latest state
       const existingAdj = prev.find(t => 
         t.date === today && 
         t.agentId === 'SYSTEM' && 
@@ -318,11 +314,9 @@ export const useFloatData = (rootId) => {
         const newSignedAmount = currentSignedAmount + diff;
 
         if (Math.abs(newSignedAmount) < 0.01) {
-          // Remove it if no longer needed
           return prev.filter(t => t.id !== existingAdj.id);
         }
 
-        // Update it
         return prev.map(t => t.id === existingAdj.id ? {
           ...t,
           amount: Math.abs(newSignedAmount),
@@ -330,7 +324,6 @@ export const useFloatData = (rootId) => {
           timestamp: new Date().toISOString()
         } : t);
       } else {
-        // Create new one
         const adjTx = {
           id: generateId(),
           date: today,
