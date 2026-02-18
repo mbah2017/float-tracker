@@ -8,7 +8,7 @@ export const DayEndFinalizationCard = ({
   closeDay,
   overallDiscrepancy
 }) => {
-  const [discrepancyNotesInput, setDiscrepancyNotesInput] = useState(currentLiquidity.reconciliationNotes || '');
+  const [discrepancyNotesInput, setDiscrepancyNotesInput] = useState(currentLiquidity?.reconciliationNotes || '');
 
   return (
     <Card className="p-6 border-amber-100 bg-amber-50/50 shadow-sm">
@@ -19,12 +19,12 @@ export const DayEndFinalizationCard = ({
       <div className="space-y-5">
         <div className="flex justify-between items-center p-4 bg-white rounded-xl border border-amber-100 shadow-sm">
           <span className="text-slate-600 font-bold text-sm">Overall Discrepancy</span>
-          <span className={`text-xl font-black ${Math.abs(overallDiscrepancy) > 0.01 ? 'text-red-600' : 'text-emerald-600'}`}>
-            {formatCurrency(overallDiscrepancy)}
+          <span className={`text-xl font-black ${Math.abs(overallDiscrepancy || 0) > 0.01 ? 'text-red-600' : 'text-emerald-600'}`}>
+            {formatCurrency(overallDiscrepancy || 0)}
           </span>
         </div>
 
-        {Math.abs(overallDiscrepancy) > 0.01 && (
+        {Math.abs(overallDiscrepancy || 0) > 0.01 && (
           <div className="animate-in fade-in slide-in-from-top-2 duration-300">
             <Input
               label="Explanation for Discrepancy"
@@ -38,15 +38,15 @@ export const DayEndFinalizationCard = ({
 
         <Button
           onClick={() => closeDay(discrepancyNotesInput)}
-          disabled={Math.abs(overallDiscrepancy) > 0.01 && !discrepancyNotesInput}
+          disabled={Math.abs(overallDiscrepancy || 0) > 0.01 && !discrepancyNotesInput}
           className="w-full mt-2 py-4 text-base font-black shadow-lg shadow-blue-200"
           variant="primary"
           icon={RefreshCw}
         >
-          {currentLiquidity.closingBalance !== null ? `Re-Close Day (${formatCurrency(currentLiquidity.closingBalance)})` : 'Finalize & Close Day'}
+          {(currentLiquidity?.closingBalance !== null && currentLiquidity?.closingBalance !== undefined) ? `Re-Close Day (${formatCurrency(currentLiquidity.closingBalance)})` : 'Finalize & Close Day'}
         </Button>
         
-        {currentLiquidity.closingBalance !== null && (
+        {(currentLiquidity?.closingBalance !== null && currentLiquidity?.closingBalance !== undefined) && (
           <p className="text-center text-[10px] text-slate-400 italic">Day finalized. Re-closing will carry over the latest balance to tomorrow.</p>
         )}
       </div>

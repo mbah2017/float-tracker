@@ -26,7 +26,7 @@ import { useFloatData } from '../hooks/useFloatData';
 import { formatCurrency } from '../utils/formatters';
 import { PROVIDERS } from '../constants';
 import { hashPassword, generateId } from '../utils/crypto';
-import { hasPermission, PERMISSIONS } from '../constants/permissions';
+import { hasPermission, PERMISSIONS, ROLE_PERMISSIONS } from '../constants/permissions';
 
 export const Dashboard = ({ user, onLogout }) => {
   const isMaster = user.role === 'master' || !user.role;

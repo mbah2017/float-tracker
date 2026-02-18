@@ -9,7 +9,7 @@ export const PassiveBalanceCard = ({
   isPassiveUnlockOverride,
   togglePassiveUnlockOverride
 }) => {
-  const isPassiveLocked = (currentLiquidity.passiveBalanceLastUpdated &&
+  const isPassiveLocked = (currentLiquidity?.passiveBalanceLastUpdated &&
     (new Date() - new Date(currentLiquidity.passiveBalanceLastUpdated)) < (30 * 24 * 60 * 60 * 1000)) &&
     !isPassiveUnlockOverride;
 
@@ -34,7 +34,7 @@ export const PassiveBalanceCard = ({
               onClick={togglePassiveUnlockOverride}
               className="text-[10px] py-1 px-2 h-7"
             >
-              {currentLiquidity.isPassiveUnlockOverride ? 'Enable Lock' : 'Admin Unlock'}
+              {currentLiquidity?.isPassiveUnlockOverride ? 'Enable Lock' : 'Admin Unlock'}
             </Button>
           )}
         </div>
@@ -44,7 +44,7 @@ export const PassiveBalanceCard = ({
         <Input
           label="Total Fixed Assets Value"
           type="number"
-          value={currentLiquidity.passiveBalance || ''}
+          value={currentLiquidity?.passiveBalance || ''}
           onChange={e => updateLiquidity({ passiveBalance: e.target.value })}
           disabled={isPassiveLocked}
           placeholder="0.00"
@@ -53,7 +53,7 @@ export const PassiveBalanceCard = ({
         {isPassiveLocked && (
           <div className="mt-2 text-[10px] text-amber-600 bg-amber-50 p-2.5 rounded-lg border border-amber-100 flex items-start gap-2">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            <span>This field is locked for 30 days to ensure asset stability. Last updated: {new Date(currentLiquidity.passiveBalanceLastUpdated).toLocaleDateString()}</span>
+            <span>This field is locked for 30 days to ensure asset stability. Last updated: {currentLiquidity?.passiveBalanceLastUpdated ? new Date(currentLiquidity.passiveBalanceLastUpdated).toLocaleDateString() : 'N/A'}</span>
           </div>
         )}
       </div>

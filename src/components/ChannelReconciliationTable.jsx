@@ -59,14 +59,16 @@ export const ChannelReconciliationTable = ({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {CHANNELS.map(channel => {
-              const opening = currentLiquidity.openingBalances?.[channel.id] || 0;
-              const channelStat = stats.channelStats?.[channel.id] || { in: 0, out: 0 };
-              const netToday = channelStat.in - channelStat.out;
+              const opening = currentLiquidity?.openingBalances?.[channel.id] || 0;
+              const channelStat = stats?.channelStats?.[channel.id] || { in: 0, out: 0 };
+              const netToday = (channelStat.in || 0) - (channelStat.out || 0);
               const expected = opening + netToday;
-              const actual = currentLiquidity.actualBalances?.[channel.id];
+              // Use currentLiquidity.actualBalances for the actual value
+              const actual = currentLiquidity?.actualBalances?.[channel.id];
+              // If actual balance is 0 or undefined, pre-fill with expected for easier reconciliation
               const displayActual = (actual === 0 && actual !== undefined) || actual === undefined ? expected : actual;
 
-              const diff = actual - expected;
+              const diff = (actual !== undefined ? actual : expected) - expected;
               const Icon = channel.icon;
 
               return (
@@ -125,15 +127,15 @@ export const ChannelReconciliationTable = ({
           <tfoot className="bg-slate-900 text-white font-bold text-[10px] sm:text-xs">
             <tr>
               <td className="px-4 py-4 rounded-bl-xl">Totals</td>
-              <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(openingTotal).replace('GMD', '')}</td>
+              <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(openingTotal || 0).replace('GMD', '')}</td>
               <td className="px-4 py-4 text-right whitespace-nowrap">
-                {(stats.returnedToday - stats.issuedToday) >= 0 ? '+' : ''}
-                {formatCurrency(stats.returnedToday - stats.issuedToday).replace('GMD', '')}
+                {((stats?.returnedToday || 0) - (stats?.issuedToday || 0)) >= 0 ? '+' : ''}
+                {formatCurrency((stats?.returnedToday || 0) - (stats?.issuedToday || 0)).replace('GMD', '')}
               </td>
-              <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(expectedClosingTotal).replace('GMD', '')}</td>
-              <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(activeBalance).replace('GMD', '')}</td>
+              <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(expectedClosingTotal || 0).replace('GMD', '')}</td>
+              <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(activeBalance || 0).replace('GMD', '')}</td>
               <td className="px-4 py-4 text-right whitespace-nowrap">
-                {formatCurrency(overallDiscrepancy).replace('GMD', '')}
+                {formatCurrency(overallDiscrepancy || 0).replace('GMD', '')}
               </td>
               <td className="px-4 py-4 rounded-br-xl"></td>
             </tr>
