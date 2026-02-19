@@ -31,6 +31,8 @@ import { ChannelReconciliationTable } from './ChannelReconciliationTable';
 import { PassiveBalanceCard } from './PassiveBalanceCard';
 import { DayEndFinalizationCard } from './DayEndFinalizationCard';
 
+import { hasPermission, PERMISSIONS } from '../constants/permissions';
+
 export const LiquidityView = ({ 
   currentLiquidity, 
   updateLiquidity, 
@@ -254,10 +256,12 @@ export const AgentsView = ({ agents, agentBalances, openModal, fileInputRef, han
   </div>
 );
 
-export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCurrency, today, setReportDate, PROVIDERS, settings, setSettings, currentLiquidity, stats, activeBalance, openModal, deleteTransaction }) => {
+export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCurrency, today, setReportDate, PROVIDERS, settings, setSettings, currentLiquidity, stats, activeBalance, openModal, deleteTransaction, user }) => {
   const [viewMode, setViewMode] = useState('summary'); // 'summary' or 'cashbook'
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState('');
+
+  const canDeleteTransaction = hasPermission(user, PERMISSIONS.DELETE_TRANSACTION);
 
   const filteredTransactions = selectedAgentId
     ? todaysTransactions.filter(t => String(t.agentId) === String(selectedAgentId))
@@ -495,13 +499,15 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => confirm('Delete this transaction?') && deleteTransaction(t.id)}
-                      className="p-2 text-slate-200 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all shadow-sm"
-                      title="Delete Entry"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {canDeleteTransaction && (
+                      <button
+                        onClick={() => confirm('Delete this transaction?') && deleteTransaction(t.id)}
+                        className="p-2 text-slate-200 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all shadow-sm"
+                        title="Delete Entry"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -604,7 +610,9 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
                           {t.type === 'issue' && (
                             <div className="flex items-center">
                               <button onClick={() => openModal('edit_transaction', t.id)} className="p-1.5 text-slate-200 hover:text-blue-600 transition-colors print:hidden"><Edit2 className="w-3.5 h-3.5" /></button>
-                              <button onClick={() => confirm('Delete this transaction?') && deleteTransaction(t.id)} className="p-1.5 text-slate-100 hover:text-red-600 transition-colors print:hidden"><Trash2 className="w-3.5 h-3.5" /></button>
+                              {canDeleteTransaction && (
+                                <button onClick={() => confirm('Delete this transaction?') && deleteTransaction(t.id)} className="p-1.5 text-slate-100 hover:text-red-600 transition-colors print:hidden"><Trash2 className="w-3.5 h-3.5" /></button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -615,7 +623,9 @@ export const ReportView = ({ agents, agentBalances, todaysTransactions, formatCu
                           {t.type !== 'issue' && (
                             <div className="flex items-center">
                               <button onClick={() => openModal('edit_transaction', t.id)} className="p-1.5 text-slate-200 hover:text-blue-600 transition-colors print:hidden"><Edit2 className="w-3.5 h-3.5" /></button>
-                              <button onClick={() => confirm('Delete this transaction?') && deleteTransaction(t.id)} className="p-1.5 text-slate-100 hover:text-red-600 transition-colors print:hidden"><Trash2 className="w-3.5 h-3.5" /></button>
+                              {canDeleteTransaction && (
+                                <button onClick={() => confirm('Delete this transaction?') && deleteTransaction(t.id)} className="p-1.5 text-slate-100 hover:text-red-600 transition-colors print:hidden"><Trash2 className="w-3.5 h-3.5" /></button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -639,11 +649,15 @@ export const OperatorsView = ({
   newOpPass, 
   setNewOpPass, 
   handleAddOperator, 
+  handleUpdateOperator,
   operators, 
   handleDeleteOperator,
+  handleEditOperator,
   selectedPermissions,
   setSelectedPermissions,
-  PERMISSIONS
+  PERMISSIONS,
+  editingOperatorId,
+  setEditingOperatorId
 }) => {
   const togglePermission = (perm) => {
     setSelectedPermissions(prev => 
@@ -651,6 +665,13 @@ export const OperatorsView = ({
         ? prev.filter(p => p !== perm) 
         : [...prev, perm]
     );
+  };
+
+  const cancelEdit = () => {
+    setEditingOperatorId(null);
+    setNewOpName('');
+    setNewOpPass('');
+    setSelectedPermissions([]);
   };
 
   return (
@@ -662,15 +683,35 @@ export const OperatorsView = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="p-6 border-slate-100 shadow-sm rounded-2xl">
           <div className="flex items-center gap-4 mb-6">
-            <div className="bg-blue-100 p-3 rounded-2xl text-blue-600 shadow-inner"><UserCog className="w-6 h-6" /></div>
+            <div className={`p-3 rounded-2xl shadow-inner ${editingOperatorId ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
+              <UserCog className="w-6 h-6" />
+            </div>
             <div>
-                <h3 className="text-lg font-bold text-slate-800">Create Operator</h3>
-                <p className="text-xs text-slate-500">Add staff and assign permissions</p>
+                <h3 className="text-lg font-bold text-slate-800">
+                  {editingOperatorId ? 'Update Operator' : 'Create Operator'}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {editingOperatorId ? 'Modify staff permissions' : 'Add staff and assign permissions'}
+                </p>
             </div>
           </div>
           <div className="space-y-4">
-            <Input label="Username" value={newOpName} onChange={e => setNewOpName(e.target.value)} placeholder="e.g. fatou_staff" className="shadow-sm" />
-            <Input label="Password" type="password" value={newOpPass} onChange={e => setNewOpPass(e.target.value)} placeholder="Secret123" className="shadow-sm" />
+            <Input 
+              label="Username" 
+              value={newOpName} 
+              onChange={e => setNewOpName(e.target.value)} 
+              placeholder="e.g. fatou_staff" 
+              className="shadow-sm" 
+              disabled={!!editingOperatorId}
+            />
+            <Input 
+              label={editingOperatorId ? "New Password (leave blank to keep current)" : "Password"} 
+              type="password" 
+              value={newOpPass} 
+              onChange={e => setNewOpPass(e.target.value)} 
+              placeholder="Secret123" 
+              className="shadow-sm" 
+            />
             
             <div className="space-y-2 pt-2">
               <label className="text-xs font-black uppercase tracking-widest text-slate-400">Permissions</label>
@@ -694,7 +735,17 @@ export const OperatorsView = ({
               </div>
             </div>
 
-            <Button onClick={handleAddOperator} className="w-full py-4 font-black shadow-lg shadow-blue-100">Create Operator Account</Button>
+            <div className="flex gap-2">
+              {editingOperatorId && (
+                <Button variant="secondary" onClick={cancelEdit} className="flex-1 py-4 font-black">Cancel</Button>
+              )}
+              <Button 
+                onClick={editingOperatorId ? handleUpdateOperator : handleAddOperator} 
+                className="flex-[2] py-4 font-black shadow-lg shadow-blue-100"
+              >
+                {editingOperatorId ? 'Save Changes' : 'Create Operator Account'}
+              </Button>
+            </div>
           </div>
         </Card>
 
@@ -707,7 +758,7 @@ export const OperatorsView = ({
           ) : (
             <div className="space-y-3">
               {operators.map(op => (
-                <div key={op.id} className="flex justify-between items-center p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                <div key={op.id} className={`flex justify-between items-center p-4 bg-white border rounded-2xl shadow-sm hover:shadow-md transition-all ${editingOperatorId === op.id ? 'border-amber-200 ring-2 ring-amber-50 ring-offset-0' : 'border-slate-100'}`}>
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center font-black text-sm">
                       {op.username.charAt(0).toUpperCase()}
@@ -719,7 +770,22 @@ export const OperatorsView = ({
                       </p>
                     </div>
                   </div>
-                  <button onClick={() => handleDeleteOperator(op.id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                  <div className="flex gap-1">
+                    <button 
+                      onClick={() => handleEditOperator(op)} 
+                      className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                      title="Edit Permissions"
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteOperator(op.id)} 
+                      className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                      title="Delete Operator"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

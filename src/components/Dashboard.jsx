@@ -90,6 +90,7 @@ export const Dashboard = ({ user, onLogout }) => {
   const [newOpName, setNewOpName] = useState('');
   const [newOpPass, setNewOpPass] = useState('');
   const [selectedPermissions, setSelectedPermissions] = useState(ROLE_PERMISSIONS.operator);
+  const [editingOperatorId, setEditingOperatorId] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -240,6 +241,45 @@ Served by: ${user.username}`;
     alert('Operator added successfully!');
   };
 
+  const handleEditOperator = (op) => {
+    setEditingOperatorId(op.id);
+    setNewOpName(op.username);
+    setNewOpPass(''); // Don't show old hash
+    setSelectedPermissions(op.permissions || ROLE_PERMISSIONS.operator);
+    // Scroll to top of form if needed or just let the UI change
+  };
+
+  const handleUpdateOperator = async () => {
+    if (!editingOperatorId) return;
+
+    const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
+    const opIndex = allUsers.findIndex(u => u.id === editingOperatorId);
+    
+    if (opIndex === -1) return;
+
+    const updatedOp = { ...allUsers[opIndex] };
+    updatedOp.permissions = selectedPermissions;
+    
+    // Update password only if provided
+    if (newOpPass.trim().length >= 6) {
+      updatedOp.password = await hashPassword(newOpPass);
+    } else if (newOpPass.trim().length > 0) {
+      alert('Password must be at least 6 characters');
+      return;
+    }
+
+    allUsers[opIndex] = updatedOp;
+    localStorage.setItem('float_app_users', JSON.stringify(allUsers));
+    setOperators(allUsers.filter(u => u.masterId === user.id));
+    
+    // Reset form
+    setEditingOperatorId(null);
+    setNewOpName('');
+    setNewOpPass('');
+    setSelectedPermissions(ROLE_PERMISSIONS.operator);
+    alert('Operator updated successfully!');
+  };
+
   const handleDeleteOperator = (opId) => {
     if (!canManageOperators) return;
     if (!confirm('Are you sure you want to remove this operator?')) return;
@@ -370,6 +410,7 @@ Served by: ${user.username}`;
                           activeBalance={activeBalance}
                           openModal={openModal}
                           deleteTransaction={deleteTransaction}
+                          user={user}
                         />          )}
           {activeTab === 'liquidity' && (
             <LiquidityView 
@@ -392,11 +433,15 @@ Served by: ${user.username}`;
               newOpPass={newOpPass}
               setNewOpPass={setNewOpPass}
               handleAddOperator={handleAddOperator}
+              handleUpdateOperator={handleUpdateOperator}
               operators={operators}
               handleDeleteOperator={handleDeleteOperator}
+              handleEditOperator={handleEditOperator}
               selectedPermissions={selectedPermissions}
               setSelectedPermissions={setSelectedPermissions}
               PERMISSIONS={PERMISSIONS}
+              editingOperatorId={editingOperatorId}
+              setEditingOperatorId={setEditingOperatorId}
             />
           )}
           {activeTab === 'training' && <TrainingManualView />}
