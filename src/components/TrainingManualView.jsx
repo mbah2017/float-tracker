@@ -299,6 +299,7 @@ export const TrainingManualView = ({ user, rootId }) => {
                     h1: ({children}) => <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-12">{children}</h1>,
                     h2: Heading2,
                     h3: ({children}) => <h3 className={`text-xl font-black uppercase tracking-widest text-${styleSettings.themeColor}-600 mt-12 mb-6`}>{children}</h3>,
+                    h4: ({children}) => <h4 className="text-lg font-bold text-slate-800 mt-8 mb-4">{children}</h4>,
                     p: ({children}) => <p className="text-slate-600 text-lg leading-relaxed mb-6">{children}</p>,
                     ul: ({children}) => <ul className="list-disc list-outside ml-6 mb-8 space-y-3">{children}</ul>,
                     li: ({children}) => <li className="text-slate-600 text-lg">{children}</li>,
@@ -312,8 +313,10 @@ export const TrainingManualView = ({ user, rootId }) => {
                         <table className="w-full border-collapse">{children}</table>
                       </div>
                     ),
-                    th: ({children}) => <th className="bg-slate-50 p-5 text-left text-slate-900 font-black uppercase text-[10px] tracking-[0.2em]">{children}</th>,
-                    td: ({children}) => <td className="p-5 border-t border-slate-50 text-slate-600 text-sm">{children}</td>
+                    thead: ({children}) => <thead className="bg-slate-50">{children}</thead>,
+                    tbody: ({children}) => <tbody className="divide-y divide-slate-50">{children}</tbody>,
+                    th: ({children}) => <th className="p-5 text-left text-slate-900 font-black uppercase text-[10px] tracking-[0.2em]">{children}</th>,
+                    td: ({children}) => <td className="p-5 text-slate-600 text-sm font-medium">{children}</td>
                   }}
                 >
                   {currentContent}
