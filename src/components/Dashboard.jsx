@@ -504,7 +504,7 @@ Served by: ${user.username}`;
               user={user}
             />
           )}
-          {activeTab === 'training' && <TrainingManualView />}
+          {activeTab === 'training' && <TrainingManualView user={user} rootId={rootId} />}
         </main>
       </div>
 

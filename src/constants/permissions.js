@@ -10,6 +10,7 @@ export const PERMISSIONS = {
   ADMIN_UNLOCK: 'admin_unlock',
   DELETE_TRANSACTION: 'delete_transaction',
   RESET_SYSTEM: 'reset_system',
+  MANAGE_MANUAL: 'manage_manual',
 };
 
 export const ROLE_PERMISSIONS = {
