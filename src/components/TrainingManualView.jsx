@@ -17,8 +17,7 @@ import {
   Save,
   X,
   Type,
-  Palette,
-  Eye
+  Palette
 } from 'lucide-react';
 import { hasPermission, PERMISSIONS } from '../constants/permissions';
 import defaultManualContent from '../../TRAINING_MANUAL.md?raw';
@@ -47,19 +46,19 @@ export const TrainingManualView = ({ user, rootId }) => {
   const canManageManual = hasPermission(user, PERMISSIONS.MANAGE_MANUAL);
 
   // Split content into Master and Operator sections manually
-  const parts = content.split('---');
-  const masterContent = parts.find(p => p.includes('# Master Agent Guide')) || '';
-  const operatorContent = parts.find(p => p.includes('# Operator Guide')) || '';
+  // Using a more robust regex for section splitting
+  const masterContent = content.split(/# Operator Guide/)[0].replace(/# Master Agent Guide/, '# Master Agent Guide') || '';
+  const operatorContent = '# Operator Guide' + (content.split(/# Operator Guide/)[1] || '');
+  
   const currentContent = activeTab === 'master' ? masterContent : operatorContent;
 
-  // Extract TOC dynamically from current content with robust text extraction
+  // Extract TOC dynamically from current content
   useEffect(() => {
     const lines = currentContent.split('\n');
     const headings = lines
-      .filter(line => line.startsWith('## '))
+      .filter(line => line.trim().startsWith('## '))
       .map(line => {
         const text = line.replace('## ', '').trim();
-        // Clean text for ID (remove emojis and special chars)
         const id = text
           .toLowerCase()
           .replace(/[^\w\s-]/g, '')
@@ -78,7 +77,9 @@ export const TrainingManualView = ({ user, rootId }) => {
   };
 
   const updateStyle = (key, value) => {
-    setStyles(prev => ({ ...prev, [key]: value }));
+    const newStyles = { ...styleSettings, [key]: value };
+    setStyles(newStyles);
+    localStorage.setItem(`float_manual_styles_${rootId}`, JSON.stringify(newStyles));
   };
 
   const scrollToSection = (id) => {
@@ -105,9 +106,7 @@ export const TrainingManualView = ({ user, rootId }) => {
     </div>
   );
 
-  // Robust header component to ensure IDs match TOC
   const Heading2 = ({ children }) => {
-    // Recursively get all text from children (handles emojis/strong/etc)
     const getText = (node) => {
       if (typeof node === 'string') return node;
       if (Array.isArray(node)) return node.map(getText).join('');
@@ -141,7 +140,7 @@ export const TrainingManualView = ({ user, rootId }) => {
             <div className={`inline-flex items-center gap-2 px-4 py-1.5 bg-${styleSettings.themeColor}-500/20 rounded-full border border-${styleSettings.themeColor}-500/30 text-${styleSettings.themeColor}-300 text-[10px] font-black uppercase tracking-[0.2em]`}>
               <Book className="w-3.5 h-3.5" /> Documentation
             </div>
-            <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-none">
+            <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-none text-white">
               Platform <span className={`text-${styleSettings.themeColor}-500`}>Manual</span>
             </h1>
             <p className="text-slate-400 font-medium max-w-2xl text-xl leading-relaxed">
@@ -173,7 +172,7 @@ export const TrainingManualView = ({ user, rootId }) => {
         </div>
       </header>
 
-      {/* Editor Controls Overlay */}
+      {/* Editor Controls */}
       {isEditing && (
         <Card className="p-6 border-blue-200 bg-blue-50/50 backdrop-blur-md rounded-3xl sticky top-24 z-30 shadow-xl animate-in zoom-in-95 duration-200">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
@@ -213,85 +212,70 @@ export const TrainingManualView = ({ user, rootId }) => {
       )}
 
       {/* Main Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start px-2 md:px-0">
         {/* Navigation Sidebar */}
-        <div className="hidden lg:block lg:col-span-3 sticky top-48 space-y-6">
-          {/* Dynamic TOC */}
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-100/50">
-            <div className="flex items-center justify-between mb-6 px-2">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                <List className="w-3.5 h-3.5" /> Navigation
-              </h3>
-              <Badge color={styleSettings.themeColor}>{activeTab}</Badge>
+        {!isEditing && (
+          <div className="hidden lg:block lg:col-span-3 sticky top-48 space-y-6">
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-100/50">
+              <div className="flex items-center justify-between mb-6 px-2">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <List className="w-3.5 h-3.5" /> Navigation
+                </h3>
+                <Badge color={styleSettings.themeColor}>{activeTab}</Badge>
+              </div>
+              <nav className="space-y-1">
+                {toc.map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={() => scrollToSection(item.id)}
+                    className={`w-full text-left px-4 py-3 text-sm font-bold rounded-xl transition-all flex items-center gap-2 group hover:bg-slate-50`}
+                  >
+                    <span className={`text-${styleSettings.themeColor}-400 opacity-40 group-hover:opacity-100`}>#</span>
+                    <span className="text-slate-600 group-hover:text-slate-900">{item.text.replace(/^[0-9.]+\s*/, '')}</span>
+                  </button>
+                ))}
+              </nav>
             </div>
-            <nav className="space-y-1">
-              {toc.map((item, i) => (
-                <button
-                  key={i}
-                  onClick={() => scrollToSection(item.id)}
-                  className={`w-full text-left px-4 py-3 text-sm font-bold rounded-xl transition-all flex items-center gap-2 group hover:bg-slate-50`}
-                >
-                  <span className={`text-${styleSettings.themeColor}-400 opacity-40 group-hover:opacity-100`}>#</span>
-                  <span className="text-slate-600 group-hover:text-slate-900">{item.text.replace(/^[0-9.]+\s*/, '')}</span>
-                </button>
-              ))}
-            </nav>
-          </div>
 
-          {/* Role Switcher in Sidebar */}
-          <div className="flex flex-col gap-2 p-2 bg-slate-100 rounded-[2rem]">
-            <button
-              onClick={() => setActiveTab('master')}
-              className={`flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-black transition-all ${
-                activeTab === 'master' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:bg-white/50'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4" /> Master Guide
-            </button>
-            <button
-              onClick={() => setActiveTab('operator')}
-              className={`flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-black transition-all ${
-                activeTab === 'operator' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:bg-white/50'
-              }`}
-            >
-              <UserCheck className="w-4 h-4" /> Operator Guide
-            </button>
+            <div className="flex flex-col gap-2 p-2 bg-slate-100 rounded-[2rem]">
+              <button
+                onClick={() => setActiveTab('master')}
+                className={`flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-black transition-all ${
+                  activeTab === 'master' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:bg-white/50'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4" /> Master Guide
+              </button>
+              <button
+                onClick={() => setActiveTab('operator')}
+                className={`flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-black transition-all ${
+                  activeTab === 'operator' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:bg-white/50'
+                }`}
+              >
+                <UserCheck className="w-4 h-4" /> Operator Guide
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Content Area */}
-        <div className="lg:col-span-9">
+        <div className={isEditing ? 'lg:col-span-12' : 'lg:col-span-9'}>
           {isEditing ? (
-            <div className="space-y-4 animate-in fade-in duration-500">
-              <div className="flex items-center justify-between px-4">
-                <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
-                  <Edit3 className="w-4 h-4" /> Markdown Editor
-                </div>
-                <div className="flex items-center gap-2 text-slate-400 font-bold text-xs">
-                  <Info className="w-3 h-3" /> Tip: Use `---` to separate sections
-                </div>
-              </div>
-              <textarea
-                value={editBuffer}
-                onChange={(e) => setEditBuffer(e.target.value)}
-                className="w-full h-[800px] p-10 rounded-[3rem] border-2 border-blue-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 shadow-2xl font-mono text-sm leading-relaxed outline-none"
-                placeholder="Paste your markdown here..."
-              />
-            </div>
+            <textarea
+              value={editBuffer}
+              onChange={(e) => setEditBuffer(e.target.value)}
+              className="w-full h-[800px] p-10 rounded-[3rem] border-2 border-blue-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 shadow-2xl font-mono text-sm leading-relaxed outline-none"
+              placeholder="Paste your markdown here..."
+            />
           ) : (
             <Card className="p-8 md:p-20 rounded-[3rem] shadow-2xl shadow-slate-200/60 border-white/50 bg-white/90 backdrop-blur-md">
-              <article className={`prose prose-slate max-w-none ${styleSettings.fontSize}
+              <article className={`prose prose-slate max-w-none 
                 prose-headings:tracking-tight prose-headings:font-black
                 prose-h1:text-5xl prose-h1:text-slate-900 prose-h1:mb-12
                 prose-h2:text-3xl prose-h2:text-slate-800 prose-h2:mt-20 prose-h2:mb-8 prose-h2:pt-8 prose-h2:border-t prose-h2:border-slate-50
                 prose-h3:text-lg prose-h3:text-${styleSettings.themeColor}-600 prose-h3:mt-10 prose-h3:mb-4 prose-h3:font-black prose-h3:uppercase prose-h3:tracking-widest
-                prose-p:text-slate-600 prose-p:leading-relaxed prose-p:mb-6
+                prose-p:text-slate-600 prose-p:text-lg prose-p:leading-relaxed prose-p:mb-6
                 prose-strong:text-slate-900 prose-strong:font-black
-                prose-blockquote:border-l-4 prose-blockquote:border-${styleSettings.themeColor}-500 prose-blockquote:bg-${styleSettings.themeColor}-50/50 prose-blockquote:p-8 prose-blockquote:rounded-3xl prose-blockquote:not-italic prose-blockquote:text-${styleSettings.themeColor}-900 prose-blockquote:font-medium prose-blockquote:my-10
-                prose-code:text-indigo-600 prose-code:bg-indigo-50 prose-code:px-2 prose-code:py-0.5 prose-code:rounded-lg prose-code:before:content-none prose-code:after:content-none prose-code:font-bold
-                prose-table:border-collapse prose-table:w-full prose-table:rounded-3xl prose-table:overflow-hidden prose-table:shadow-sm prose-table:border prose-table:border-slate-100 prose-table:my-10
-                prose-th:bg-slate-50 prose-th:p-5 prose-th:text-slate-900 prose-th:font-black prose-th:uppercase prose-th:text-[10px] prose-th:tracking-[0.2em]
-                prose-td:p-5 prose-td:border-b prose-td:border-slate-50 prose-td:text-slate-600
               `}>
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm]}
