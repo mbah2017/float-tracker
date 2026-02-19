@@ -42,15 +42,17 @@ export const LiquidityView = ({
   isMaster, 
   isPassiveUnlockOverride, 
   togglePassiveUnlockOverride, 
-  createAdjustment 
+  createAdjustment,
+  user
 }) => {
+  const canViewTotalLiquidity = hasPermission(user, PERMISSIONS.VIEW_TOTAL_LIQUIDITY);
   // Calculate activeBalance directly from currentLiquidity.actualBalances
-  const activeBalance = Object.values(currentLiquidity.actualBalances || {}).reduce((sum, val) => sum + (val || 0), 0);
-  const totalOperationalLiquidity = activeBalance + (stats.totalOutstanding || 0);
+  const activeBalance = Object.values(currentLiquidity?.actualBalances || {}).reduce((sum, val) => sum + (val || 0), 0);
+  const totalOperationalLiquidity = activeBalance + (stats?.totalOutstanding || 0);
   
   // Calculations for the UI
-  const openingTotal = Object.values(currentLiquidity.openingBalances || {}).reduce((sum, val) => sum + (val || 0), 0);
-  const expectedClosingTotal = openingTotal + (stats.returnedToday || 0) - (stats.issuedToday || 0);
+  const openingTotal = Object.values(currentLiquidity?.openingBalances || {}).reduce((sum, val) => sum + (val || 0), 0);
+  const expectedClosingTotal = openingTotal + (stats?.returnedToday || 0) - (stats?.issuedToday || 0);
   const overallDiscrepancy = activeBalance - expectedClosingTotal;
 
   return (
@@ -83,11 +85,13 @@ export const LiquidityView = ({
               togglePassiveUnlockOverride={togglePassiveUnlockOverride}
             />
 
-            <Card className="p-6 bg-gradient-to-br from-blue-600 to-blue-800 text-white border-none shadow-xl shadow-blue-100">
-              <p className="text-blue-100 text-xs font-bold uppercase tracking-[0.1em] mb-1">Total Operational Liquidity</p>
-              <h2 className="text-3xl font-black">{formatCurrency(totalOperationalLiquidity)}</h2>
-              <p className="text-[10px] text-blue-200/80 mt-3 leading-relaxed">Sum of all active wallet balances and outstanding debt from your agent network.</p>
-            </Card>
+            {canViewTotalLiquidity && (
+              <Card className="p-6 bg-gradient-to-br from-blue-600 to-blue-800 text-white border-none shadow-xl shadow-blue-100">
+                <p className="text-blue-100 text-xs font-bold uppercase tracking-[0.1em] mb-1">Total Operational Liquidity</p>
+                <h2 className="text-3xl font-black">{formatCurrency(totalOperationalLiquidity)}</h2>
+                <p className="text-[10px] text-blue-200/80 mt-3 leading-relaxed">Sum of all active wallet balances and outstanding debt from your agent network.</p>
+              </Card>
+            )}
           </div>
 
           <div className="space-y-6">
@@ -108,6 +112,7 @@ export const DashboardView = ({ stats, formatCurrency, activeBalance, openingBal
   const canViewIssued = hasPermission(user, PERMISSIONS.VIEW_ISSUED_TODAY);
   const canViewRepaid = hasPermission(user, PERMISSIONS.VIEW_REPAID_TODAY);
   const canViewDebt = hasPermission(user, PERMISSIONS.VIEW_TEAM_DEBT);
+  const canViewTotalLiquidity = hasPermission(user, PERMISSIONS.VIEW_TOTAL_LIQUIDITY);
 
   return (
     <div className="space-y-6 pb-20">
@@ -117,7 +122,7 @@ export const DashboardView = ({ stats, formatCurrency, activeBalance, openingBal
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Day Opening</p>
-                <h2 className="text-2xl font-bold text-blue-300">{formatCurrency(openingBalance)}</h2>
+                <h2 className="text-2xl font-bold text-blue-300">{formatCurrency(openingBalance || 0)}</h2>
               </div>
               <div className="p-2 bg-slate-700/50 rounded-xl">
                 <RefreshCw className="w-5 h-5 text-blue-300" />
@@ -132,7 +137,7 @@ export const DashboardView = ({ stats, formatCurrency, activeBalance, openingBal
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-blue-100 text-xs font-bold uppercase tracking-wider mb-1">Issued Today</p>
-                  <h2 className="text-2xl font-bold">{formatCurrency(stats.issuedToday)}</h2>
+                  <h2 className="text-2xl font-bold">{formatCurrency(stats?.issuedToday || 0)}</h2>
                 </div>
                 <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
                   <ArrowUpCircle className="w-5 h-5 text-white" />
@@ -148,7 +153,7 @@ export const DashboardView = ({ stats, formatCurrency, activeBalance, openingBal
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Repaid Today</p>
-                  <h2 className="text-2xl font-bold text-emerald-600">{formatCurrency(stats.returnedToday)}</h2>
+                  <h2 className="text-2xl font-bold text-emerald-600">{formatCurrency(stats?.returnedToday || 0)}</h2>
                 </div>
                 <div className="p-2 bg-emerald-100 rounded-xl">
                   <ArrowDownCircle className="w-5 h-5 text-emerald-600" />
@@ -163,7 +168,7 @@ export const DashboardView = ({ stats, formatCurrency, activeBalance, openingBal
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Actual Balance</p>
-                <h2 className="text-2xl font-bold text-blue-600">{formatCurrency(activeBalance)}</h2>
+                <h2 className="text-2xl font-bold text-blue-600">{formatCurrency(activeBalance || 0)}</h2>
               </div>
               <div className="p-2 bg-blue-50 rounded-xl">
                 <Banknote className="w-5 h-5 text-blue-600" />
@@ -178,8 +183,8 @@ export const DashboardView = ({ stats, formatCurrency, activeBalance, openingBal
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Team Debt</p>
-                  <h2 className={`text-2xl font-bold ${stats.totalOutstanding > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                    {formatCurrency(stats.totalOutstanding)}
+                  <h2 className={`text-2xl font-bold ${(stats?.totalOutstanding || 0) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                    {formatCurrency(stats?.totalOutstanding || 0)}
                   </h2>
                 </div>
                 <div className="p-2 bg-amber-50 rounded-xl">
@@ -191,7 +196,7 @@ export const DashboardView = ({ stats, formatCurrency, activeBalance, openingBal
         )}
       </div>
 
-      {(canViewIssued && canViewDebt) && (
+      {canViewTotalLiquidity && (
         <Card className="bg-blue-900 text-white border-none p-6 md:p-8 shadow-2xl shadow-blue-200 overflow-hidden relative group">
            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <Scale className="w-32 h-32 -mr-8 -mt-8 rotate-12" />
@@ -199,7 +204,7 @@ export const DashboardView = ({ stats, formatCurrency, activeBalance, openingBal
            <div className="flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
               <div className="text-center md:text-left">
                  <p className="text-blue-300 text-sm font-bold uppercase tracking-[0.2em] mb-2">Total Operational Liquidity</p>
-                 <h2 className="text-4xl md:text-5xl font-black">{formatCurrency(activeBalance + stats.totalOutstanding)}</h2>
+                 <h2 className="text-4xl md:text-5xl font-black">{formatCurrency((activeBalance || 0) + (stats?.totalOutstanding || 0))}</h2>
               </div>
               <div className="text-center md:text-right">
                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full mb-2">

@@ -50,7 +50,10 @@ Delegate daily tasks to your staff using the **"Operators"** tab. The system use
 | **MANAGE_MANUAL** | Allows editing this manual's content and visual theme. |
 | **RESET_SYSTEM** | High-level access to wipe all local data from the device. |
 | **VIEW_DASHBOARD** | Access to the main statistics dashboard view. |
+| **VIEW_ISSUED_TODAY** | Visibility of total funds issued during the current day. |
+| **VIEW_REPAID_TODAY** | Visibility of total funds repaid during the current day. |
 | **VIEW_TEAM_DEBT** | Visibility of the total outstanding debt across all agents. |
+| **VIEW_TOTAL_LIQUIDITY**| Visibility of the Total Operational Liquidity (Actual + Debt). |
 
 ## 4. 🎨 Customizing the Experience
 Master Agents can customize the look and feel of the documentation via the `Customize Manual` button.

@@ -15,6 +15,7 @@ export const PERMISSIONS = {
   VIEW_ISSUED_TODAY: 'view_issued_today',
   VIEW_REPAID_TODAY: 'view_repaid_today',
   VIEW_TEAM_DEBT: 'view_team_debt',
+  VIEW_TOTAL_LIQUIDITY: 'view_total_liquidity',
 };
 
 export const ROLE_PERMISSIONS = {

@@ -484,6 +484,7 @@ Served by: ${user.username}`;
                                                         isPassiveUnlockOverride={currentLiquidity.isPassiveUnlockOverride}
                                                         togglePassiveUnlockOverride={togglePassiveUnlockOverride}
                                                         createAdjustment={createAdjustment}
+                                                        user={user}
                                                       />          )}
           {activeTab === 'agents' && <AgentsView agents={agents} agentBalances={agentBalances} openModal={openModal} fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} downloadTemplate={downloadTemplate} formatCurrency={formatCurrency} />}
           {activeTab === 'operators' && canManageOperators && (
