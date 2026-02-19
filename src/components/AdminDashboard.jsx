@@ -8,7 +8,8 @@ import {
   Calendar,
   ChevronRight,
   ShieldCheck,
-  Eye
+  Eye,
+  MailWarning
 } from 'lucide-react';
 import { 
   collection, 
@@ -18,7 +19,8 @@ import {
   doc,
   deleteDoc
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth, db } from '../lib/firebase';
 import { Button, Badge } from './common';
 
 export const AdminDashboard = ({ onViewMaster }) => {
@@ -47,10 +49,20 @@ export const AdminDashboard = ({ onViewMaster }) => {
     
     try {
       await deleteDoc(doc(db, 'users', id));
-      // No need to manually update state, onSnapshot will handle it
     } catch (error) {
       console.error("Error deleting master:", error);
       alert("Failed to delete master agent.");
+    }
+  };
+
+  const handleResetPassword = async (email) => {
+    if (!confirm(`Send a password reset email to ${email}?`)) return;
+    try {
+      await sendPasswordResetEmail(auth, email);
+      alert("Password reset email sent successfully!");
+    } catch (error) {
+      console.error("Reset error:", error);
+      alert(error.message);
     }
   };
 
@@ -167,7 +179,16 @@ export const AdminDashboard = ({ onViewMaster }) => {
                           className="flex items-center gap-1 h-8 text-xs px-3 font-bold"
                           onClick={() => onViewMaster(master.id, master.businessName || master.username)}
                         >
-                          <Eye className="w-3.5 h-3.5" /> View Dashboard
+                          <Eye className="w-3.5 h-3.5" /> View
+                        </Button>
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          className="h-8 w-8 !p-0 flex items-center justify-center"
+                          onClick={() => handleResetPassword(master.email)}
+                          title="Send Password Reset Email"
+                        >
+                          <MailWarning className="w-4 h-4" />
                         </Button>
                         <Button 
                           variant="danger" 

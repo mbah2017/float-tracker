@@ -15,7 +15,8 @@ import {
   BookOpen,
   Globe as GlobeIcon,
   ShieldCheck,
-  Eye
+  Eye,
+  Settings
 } from 'lucide-react';
 import { 
   collection, 
@@ -32,6 +33,7 @@ import { Button, Badge, Input } from './common';
 import { DashboardView, AgentsView, ReportView, OperatorsView, LiquidityView } from './DashboardViews';
 import { TrainingManualView } from './TrainingManualView';
 import { AdminDashboard } from './AdminDashboard';
+import { AccountSettings } from './AccountSettings';
 import { useFloatData } from '../hooks/useFloatData';
 import { formatCurrency } from '../utils/formatters';
 import { PROVIDERS } from '../constants';
@@ -90,7 +92,6 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
   const [operators, setOperators] = useState([]);
   const [newOpName, setNewOpName] = useState('');
   const [newOpPass, setNewOpPass] = useState('');
-  const [newOpEmail, setNewOpEmail] = useState('');
   const [selectedPermissions, setSelectedPermissions] = useState(ROLE_PERMISSIONS.operator);
   const [editingOperatorId, setEditingOperatorId] = useState(null);
 
@@ -109,7 +110,6 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
 
   const handleResetSystem = () => {
     if (!confirm('⚠️ CRITICAL WARNING: This will permanently delete ALL data. Are you absolutely sure?')) return;
-    // Implement full wipe logic if needed, or just warn.
     alert("Full wipe not implemented for security reasons.");
   };
 
@@ -153,7 +153,6 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
     }
     const txData = { agentId: String(selectedAgentId), type: modalType, category: modalType === 'return' ? returnCategory : 'issue', amount: parsedAmount, method, note, performedBy: user.username };
     
-    // WhatsApp logic remains the same (client-side)
     if (sendWhatsapp && modalType !== 'edit_transaction') {
       const agent = agents.find(a => String(a.id) === String(selectedAgentId));
       if (agent && agent.phone) {
@@ -185,7 +184,6 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
 
   const handleAddOperator = async () => {
     alert("Operator creation must be done via Firebase Console or a dedicated admin function for security. Use 'Register' for now to create accounts.");
-    // In a real app, you'd use a Cloud Function to create accounts without logging out.
   };
 
   const handleUpdateOperator = async () => {
@@ -282,6 +280,7 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
               { id: 'agents', label: t('manage_agents'), icon: Users },
               ...((canManageOperators || rootId !== user.id) ? [{ id: 'operators', label: t('operators'), icon: UserCog }] : []),
               { id: 'training', label: t('training_manual'), icon: BookOpen },
+              ...(rootId === user.id ? [{ id: 'account', label: 'Account', icon: Settings }] : []),
             ].map(item => (
               <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm'}`}>
                 <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-white' : 'text-slate-400 group-hover:text-blue-600'}`} /> {item.label}
@@ -311,6 +310,7 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
             <OperatorsView newOpName={newOpName} setNewOpName={setNewOpName} newOpPass={newOpPass} setNewOpPass={setNewOpPass} handleAddOperator={handleAddOperator} handleUpdateOperator={handleUpdateOperator} operators={operators} handleDeleteOperator={handleDeleteOperator} handleEditOperator={handleEditOperator} selectedPermissions={selectedPermissions} setSelectedPermissions={setSelectedPermissions} PERMISSIONS={PERMISSIONS} editingOperatorId={editingOperatorId} setEditingOperatorId={setEditingOperatorId} user={user} />
           )}
           {activeTab === 'training' && <TrainingManualView user={user} rootId={rootId} />}
+          {activeTab === 'account' && <AccountSettings user={user} />}
         </main>
       </div>
 
@@ -441,6 +441,7 @@ export const Dashboard = ({ user, onLogout }) => {
     { id: 'agents', label: t('manage_agents'), icon: Users },
     ...((rootId !== user.id || isMaster) ? [{ id: 'operators', label: t('operators'), icon: UserCog }] : []),
     { id: 'training', label: t('training_manual'), icon: BookOpen },
+    ...(rootId === user.id ? [{ id: 'account', label: 'Account', icon: Settings }] : []),
   ];
 
   return (
@@ -489,10 +490,14 @@ export const Dashboard = ({ user, onLogout }) => {
           </nav>
           <div className="max-w-7xl mx-auto p-4 md:flex md:gap-8 mt-4">
              <aside className="hidden md:block w-64 shrink-0">
-                <button onClick={() => setActiveTab('admin')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold bg-blue-600 text-white shadow-lg shadow-blue-200"><ShieldCheck className="w-5 h-5" /> Admin</button>
+                <div className="space-y-1.5">
+                  <button onClick={() => setActiveTab('admin')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === 'admin' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-white'}`}><ShieldCheck className="w-5 h-5" /> Admin</button>
+                  <button onClick={() => setActiveTab('account')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === 'account' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-white'}`}><Settings className="w-5 h-5" /> Account</button>
+                </div>
              </aside>
              <main className="flex-1">
-                <AdminDashboard onViewMaster={handleViewAsMaster} />
+                {activeTab === 'admin' && <AdminDashboard onViewMaster={handleViewAsMaster} />}
+                {activeTab === 'account' && <AccountSettings user={user} />}
              </main>
           </div>
         </>
