@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Banknote, Building2, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { Input, Button } from './common';
 import { hashPassword, generateId } from '../utils/crypto';
+import { useLanguage } from '../context/LanguageContext';
 
 export const AuthScreen = ({ onLogin }) => {
+  const { t } = useLanguage();
   const [isRegistering, setIsRegistering] = useState(false);
   const [formData, setFormData] = useState({ username: '', password: '', businessName: '' });
   const [error, setError] = useState('');
@@ -21,12 +23,12 @@ export const AuthScreen = ({ onLogin }) => {
     const businessName = formData.businessName.trim();
 
     if (!username || !password || (isRegistering && !businessName)) {
-      setError('Please fill in all required fields');
+      setError(t('fields_required'));
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError(t('password_too_short'));
       return;
     }
 
@@ -37,7 +39,7 @@ export const AuthScreen = ({ onLogin }) => {
 
       if (isRegistering) {
         if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
-          setError('Username already exists');
+          setError(t('username_exists'));
           setLoading(false);
           return;
         }
@@ -50,18 +52,18 @@ export const AuthScreen = ({ onLogin }) => {
         };
         users.push(newUser);
         localStorage.setItem('float_app_users', JSON.stringify(users));
-        alert(`Welcome to Float Manager, ${businessName}!`);
+        alert(t('welcome_message').replace('{name}', businessName));
         onLogin(newUser);
       } else {
         const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === hashedPass);
         if (user) {
           onLogin(user);
         } else {
-          setError('Invalid username or password');
+          setError(t('invalid_credentials'));
         }
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      setError(t('unexpected_error'));
     } finally {
       setLoading(false);
     }
@@ -79,7 +81,7 @@ export const AuthScreen = ({ onLogin }) => {
             <Banknote className="w-8 h-8 text-blue-200" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-1 relative z-10 tracking-tight">Float Manager</h1>
-          <p className="text-blue-200 text-sm relative z-10">Master Agent Control Center</p>
+          <p className="text-blue-200 text-sm relative z-10">{t('control_center')}</p>
         </div>
 
         <div className="p-8">
@@ -90,7 +92,7 @@ export const AuthScreen = ({ onLogin }) => {
               onClick={() => { setIsRegistering(false); setError(''); }}
               className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${!isRegistering ? 'bg-white text-blue-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
-              Login
+              {t('login')}
             </button>
             <button 
               type="button"
@@ -98,21 +100,21 @@ export const AuthScreen = ({ onLogin }) => {
               onClick={() => { setIsRegistering(true); setError(''); }}
               className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${isRegistering ? 'bg-white text-blue-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
-              Register Business
+              {t('register_business')}
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 text-left">
             {isRegistering && (
               <div className="p-3 bg-blue-50 text-blue-700 text-[11px] rounded-xl border border-blue-100 mb-2 leading-relaxed">
-                You are creating a <strong>Master Agent</strong> account. This account will have full control over agents and the ability to onboard staff (Operators).
+                {t('master_agent_desc')}
               </div>
             )}
             
             {isRegistering && (
               <Input 
                 name="businessName"
-                label="Business Name" 
+                label={t('business_name')} 
                 placeholder="e.g. Ali's Transfer Shop" 
                 value={formData.businessName}
                 onChange={handleChange}
@@ -122,8 +124,8 @@ export const AuthScreen = ({ onLogin }) => {
             
             <Input 
               name="username"
-              label="Username" 
-              placeholder="Enter username" 
+              label={t('username')} 
+              placeholder={t('username_placeholder')} 
               value={formData.username}
               onChange={handleChange}
               disabled={loading}
@@ -132,8 +134,8 @@ export const AuthScreen = ({ onLogin }) => {
             <Input 
               name="password"
               type="password"
-              label="Password" 
-              placeholder="••••••••" 
+              label={t('password')} 
+              placeholder={t('password_placeholder')} 
               value={formData.password}
               onChange={handleChange}
               disabled={loading}
@@ -152,7 +154,7 @@ export const AuthScreen = ({ onLogin }) => {
               disabled={loading}
               icon={loading ? Loader2 : (isRegistering ? Building2 : Lock)}
             >
-              {loading ? 'Processing...' : (isRegistering ? 'Create Master Account' : 'Sign In to Dashboard')}
+              {loading ? t('processing') : (isRegistering ? t('create_master_account') : t('sign_in_dashboard'))}
             </Button>
           </form>
         </div>

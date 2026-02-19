@@ -21,9 +21,11 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { hasPermission, PERMISSIONS } from '../constants/permissions';
+import { useLanguage } from '../context/LanguageContext';
 import defaultManualContent from '../../TRAINING_MANUAL.md?raw';
 
 export const TrainingManualView = ({ user, rootId }) => {
+  const { t } = useLanguage();
   // Persistence logic for manual content and styles
   const [content, setContent] = useState(() => {
     const saved = localStorage.getItem(`float_manual_content_${rootId}`);
@@ -47,14 +49,14 @@ export const TrainingManualView = ({ user, rootId }) => {
   const canManageManual = hasPermission(user, PERMISSIONS.MANAGE_MANUAL);
 
   // Robustly split content by identifying the start of the major sections
-  const getSection = (title) => {
-    const rx = new RegExp(`# ${title}[\\s\\S]*?(?=# (?:Master|Operator) Guide|$)`, 'i');
+  const getSection = (titleEn, titleFr) => {
+    const rx = new RegExp(`# (?:${titleEn}|${titleFr})[\\s\\S]*?(?=# (?:Master Agent Guide|Operator Guide|Guide Maître|Guide Opérateur)|$)`, 'i');
     const match = content.match(rx);
     return match ? match[0] : '';
   };
 
-  const masterContent = getSection('Master Agent Guide');
-  const operatorContent = getSection('Operator Guide');
+  const masterContent = getSection('Master Agent Guide', 'Guide Maître');
+  const operatorContent = getSection('Operator Guide', 'Guide Opérateur');
   
   const currentContent = activeTab === 'master' ? masterContent.trim() : operatorContent.trim();
 
@@ -81,7 +83,7 @@ export const TrainingManualView = ({ user, rootId }) => {
   };
 
   const handleReset = () => {
-    if (!confirm('Reset manual to original default content? All your edits will be lost.')) return;
+    if (!confirm(t('reset_confirm') || 'Reset manual to original default content?')) return;
     setContent(defaultManualContent);
     setEditBuffer(defaultManualContent);
     localStorage.removeItem(`float_manual_content_${rootId}`);
@@ -150,13 +152,13 @@ export const TrainingManualView = ({ user, rootId }) => {
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
           <div className="space-y-6">
             <div className={`inline-flex items-center gap-2 px-4 py-1.5 bg-${styleSettings.themeColor}-500/20 rounded-full border border-${styleSettings.themeColor}-500/30 text-${styleSettings.themeColor}-300 text-[10px] font-black uppercase tracking-[0.2em]`}>
-              <Book className="w-3.5 h-3.5" /> Documentation
+              <Book className="w-3.5 h-3.5" /> {t('knowledge_base')}
             </div>
             <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-none text-white">
-              Platform <span className={`text-${styleSettings.themeColor}-500`}>Manual</span>
+              {t('platform_manual').split(' ')[0]} <span className={`text-${styleSettings.themeColor}-500`}>{t('platform_manual').split(' ').slice(1).join(' ')}</span>
             </h1>
             <p className="text-slate-400 font-medium max-w-2xl text-xl leading-relaxed">
-              The essential guide for scaling your business and coordinating your agent network with precision.
+              {t('manual_desc')}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -172,12 +174,12 @@ export const TrainingManualView = ({ user, rootId }) => {
                   }
                 }}
               >
-                {isEditing ? <><Save className="w-4 h-4 mr-2" /> Save Changes</> : <><Edit3 className="w-4 h-4 mr-2" /> Customize Manual</>}
+                {isEditing ? <><Save className="w-4 h-4 mr-2" /> {t('save_changes_btn')}</> : <><Edit3 className="w-4 h-4 mr-2" /> {t('customize_manual')}</>}
               </Button>
             )}
             {!isEditing && (
               <Button variant="outline" className="bg-white/5 border-white/10 text-white hover:bg-white/20 rounded-2xl px-8 py-4 font-bold" onClick={() => window.print()}>
-                <Download className="w-4 h-4 mr-2" /> Export PDF
+                <Download className="w-4 h-4 mr-2" /> {t('export_pdf')}
               </Button>
             )}
           </div>
@@ -216,9 +218,9 @@ export const TrainingManualView = ({ user, rootId }) => {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="danger" onClick={handleReset} icon={RefreshCw}>Reset to Default</Button>
-              <Button variant="secondary" onClick={() => setIsEditing(false)} icon={X}>Cancel</Button>
-              <Button variant="primary" onClick={handleSave} icon={Save}>Save All Changes</Button>
+              <Button variant="danger" onClick={handleReset} icon={RefreshCw}>{t('reset_default')}</Button>
+              <Button variant="secondary" onClick={() => setIsEditing(false)} icon={X}>{t('cancel')}</Button>
+              <Button variant="primary" onClick={handleSave} icon={Save}>{t('save_changes_btn')}</Button>
             </div>
           </div>
         </Card>
@@ -232,9 +234,9 @@ export const TrainingManualView = ({ user, rootId }) => {
             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-100/50">
               <div className="flex items-center justify-between mb-6 px-2">
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <List className="w-3.5 h-3.5" /> Navigation
+                  <List className="w-3.5 h-3.5" /> {t('navigation')}
                 </h3>
-                <Badge color={styleSettings.themeColor}>{activeTab}</Badge>
+                <Badge color={styleSettings.themeColor}>{activeTab === 'master' ? t('master_guide').split(' ')[0] : t('operator_guide').split(' ')[0]}</Badge>
               </div>
               <nav className="space-y-1">
                 {toc.map((item, i) => (
@@ -257,7 +259,7 @@ export const TrainingManualView = ({ user, rootId }) => {
                   activeTab === 'master' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:bg-white/50'
                 }`}
               >
-                <ShieldCheck className="w-4 h-4" /> Master Guide
+                <ShieldCheck className="w-4 h-4" /> {t('master_guide')}
               </button>
               <button
                 onClick={() => setActiveTab('operator')}
@@ -265,7 +267,7 @@ export const TrainingManualView = ({ user, rootId }) => {
                   activeTab === 'operator' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:bg-white/50'
                 }`}
               >
-                <UserCheck className="w-4 h-4" /> Operator Guide
+                <UserCheck className="w-4 h-4" /> {t('operator_guide')}
               </button>
             </div>
           </div>
@@ -274,12 +276,22 @@ export const TrainingManualView = ({ user, rootId }) => {
         {/* Content Area */}
         <div className={isEditing ? 'lg:col-span-12' : 'lg:col-span-9'}>
           {isEditing ? (
-            <textarea
-              value={editBuffer}
-              onChange={(e) => setEditBuffer(e.target.value)}
-              className="w-full h-[800px] p-10 rounded-[3rem] border-2 border-blue-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 shadow-2xl font-mono text-sm leading-relaxed outline-none"
-              placeholder="Paste your markdown here..."
-            />
+            <div className="space-y-4 animate-in fade-in duration-500">
+              <div className="flex items-center justify-between px-4">
+                <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
+                  <Edit3 className="w-4 h-4" /> {t('markdown_editor')}
+                </div>
+                <div className="flex items-center gap-2 text-slate-400 font-bold text-xs">
+                  <Info className="w-3 h-3" /> {t('editor_tip')}
+                </div>
+              </div>
+              <textarea
+                value={editBuffer}
+                onChange={(e) => setEditBuffer(e.target.value)}
+                className="w-full h-[800px] p-10 rounded-[3rem] border-2 border-blue-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 shadow-2xl font-mono text-sm leading-relaxed outline-none"
+                placeholder="Paste your markdown here..."
+              />
+            </div>
           ) : (
             <Card className="p-8 md:p-20 rounded-[3rem] shadow-2xl shadow-slate-200/60 border-white/50 bg-white/90 backdrop-blur-md">
               <article className={`prose prose-slate max-w-none 
@@ -287,7 +299,7 @@ export const TrainingManualView = ({ user, rootId }) => {
                 prose-h1:text-5xl prose-h1:text-slate-900 prose-h1:mb-12
                 prose-h2:text-3xl prose-h2:text-slate-800 prose-h2:mt-20 prose-h2:mb-8 prose-h2:pt-8 prose-h2:border-t prose-h2:border-slate-50
                 prose-h3:text-lg prose-h3:text-${styleSettings.themeColor}-600 prose-h3:mt-10 prose-h3:mb-4 prose-h3:font-black prose-h3:uppercase prose-h3:tracking-widest
-                prose-p:text-slate-600 prose-p:text-lg prose-p:leading-relaxed prose-p:mb-6
+                prose-p:text-slate-600 prose-p:leading-relaxed prose-p:mb-6
                 prose-strong:text-slate-900 prose-strong:font-black
               `}>
                 <ReactMarkdown 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Card, Button, Input } from './common';
+import { useLanguage } from '../context/LanguageContext';
 
 export const DayEndFinalizationCard = ({
   currentLiquidity,
@@ -8,17 +9,18 @@ export const DayEndFinalizationCard = ({
   closeDay,
   overallDiscrepancy
 }) => {
+  const { t } = useLanguage();
   const [discrepancyNotesInput, setDiscrepancyNotesInput] = useState(currentLiquidity?.reconciliationNotes || '');
 
   return (
     <Card className="p-6 border-amber-100 bg-amber-50/50 shadow-sm">
       <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-        <AlertTriangle className="w-5 h-5 text-amber-600" /> Day-End Finalization
+        <AlertTriangle className="w-5 h-5 text-amber-600" /> {t('day_end_finalization')}
       </h3>
       
       <div className="space-y-5">
         <div className="flex justify-between items-center p-4 bg-white rounded-xl border border-amber-100 shadow-sm">
-          <span className="text-slate-600 font-bold text-sm">Overall Discrepancy</span>
+          <span className="text-slate-600 font-bold text-sm">{t('overall_discrepancy')}</span>
           <span className={`text-xl font-black ${Math.abs(overallDiscrepancy || 0) > 0.01 ? 'text-red-600' : 'text-emerald-600'}`}>
             {formatCurrency(overallDiscrepancy || 0)}
           </span>
@@ -27,7 +29,7 @@ export const DayEndFinalizationCard = ({
         {Math.abs(overallDiscrepancy || 0) > 0.01 && (
           <div className="animate-in fade-in slide-in-from-top-2 duration-300">
             <Input
-              label="Explanation for Discrepancy"
+              label={t('explanation_needed')}
               value={discrepancyNotesInput}
               onChange={e => setDiscrepancyNotesInput(e.target.value)}
               placeholder="Why is there a shortage or surplus?"
@@ -43,11 +45,11 @@ export const DayEndFinalizationCard = ({
           variant="primary"
           icon={RefreshCw}
         >
-          {(currentLiquidity?.closingBalance !== null && currentLiquidity?.closingBalance !== undefined) ? `Re-Close Day (${formatCurrency(currentLiquidity.closingBalance)})` : 'Finalize & Close Day'}
+          {(currentLiquidity?.closingBalance !== null && currentLiquidity?.closingBalance !== undefined) ? `${t('reclose_day')} (${formatCurrency(currentLiquidity.closingBalance)})` : t('finalize_close')}
         </Button>
         
         {(currentLiquidity?.closingBalance !== null && currentLiquidity?.closingBalance !== undefined) && (
-          <p className="text-center text-[10px] text-slate-400 italic">Day finalized. Re-closing will carry over the latest balance to tomorrow.</p>
+          <p className="text-center text-[10px] text-slate-400 italic">{t('day_finalized_note')}</p>
         )}
       </div>
     </Card>

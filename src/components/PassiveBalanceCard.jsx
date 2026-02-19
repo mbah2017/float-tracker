@@ -1,6 +1,7 @@
 import React from 'react';
 import { Lock, Unlock, AlertTriangle } from 'lucide-react';
 import { Card, Button, Badge, Input } from './common';
+import { useLanguage } from '../context/LanguageContext';
 
 export const PassiveBalanceCard = ({
   currentLiquidity,
@@ -9,6 +10,7 @@ export const PassiveBalanceCard = ({
   isPassiveUnlockOverride,
   togglePassiveUnlockOverride
 }) => {
+  const { t } = useLanguage();
   const isPassiveLocked = (currentLiquidity?.passiveBalanceLastUpdated &&
     (new Date() - new Date(currentLiquidity.passiveBalanceLastUpdated)) < (30 * 24 * 60 * 60 * 1000)) &&
     !isPassiveUnlockOverride;
@@ -18,15 +20,15 @@ export const PassiveBalanceCard = ({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <Lock className="w-5 h-5 text-slate-400" /> Passive Balance
+            <Lock className="w-5 h-5 text-slate-400" /> {t('passive_balance')}
           </h3>
-          <p className="text-xs text-slate-500">Fixed assets and long-term reserves</p>
+          <p className="text-xs text-slate-500">{t('fixed_assets')}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {isPassiveLocked ? (
-            <Badge color="slate"><Lock className="w-3 h-3 mr-1" /> Locked</Badge>
+            <Badge color="slate"><Lock className="w-3 h-3 mr-1" /> {t('locked')}</Badge>
           ) : (
-            <Badge color="green"><Unlock className="w-3 h-3 mr-1" /> Open</Badge>
+            <Badge color="green"><Unlock className="w-3 h-3 mr-1" /> {t('open')}</Badge>
           )}
           {isMaster && (
             <Button
@@ -34,7 +36,7 @@ export const PassiveBalanceCard = ({
               onClick={togglePassiveUnlockOverride}
               className="text-[10px] py-1 px-2 h-7"
             >
-              {currentLiquidity?.isPassiveUnlockOverride ? 'Enable Lock' : 'Admin Unlock'}
+              {currentLiquidity?.isPassiveUnlockOverride ? t('enable_lock') : t('admin_unlock')}
             </Button>
           )}
         </div>
@@ -42,7 +44,7 @@ export const PassiveBalanceCard = ({
       
       <div className="relative">
         <Input
-          label="Total Fixed Assets Value"
+          label={t('total_fixed_assets')}
           type="number"
           value={currentLiquidity?.passiveBalance || ''}
           onChange={e => updateLiquidity({ passiveBalance: e.target.value })}

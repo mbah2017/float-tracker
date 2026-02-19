@@ -1,6 +1,7 @@
 import React from 'react';
 import { Scale, Banknote, Building2, Smartphone, Globe } from 'lucide-react';
 import { Card, Button, Badge, Input } from './common';
+import { useLanguage } from '../context/LanguageContext';
 
 export const ChannelReconciliationTable = ({ 
   currentLiquidity, 
@@ -13,14 +14,15 @@ export const ChannelReconciliationTable = ({
   activeBalance,
   overallDiscrepancy
 }) => {
+  const { t } = useLanguage();
   const CHANNELS = [
-    { id: 'cash', label: 'Cash on Hand', icon: Banknote },
-    { id: 'bank', label: 'Bank Account', icon: Building2 },
-    { id: 'wave', label: 'Wave Wallet', icon: Smartphone },
-    { id: 'aps', label: 'APS Wallet', icon: Globe },
-    { id: 'orange', label: 'Orange Money', icon: Smartphone },
-    { id: 'nafa', label: 'NAFA Wallet', icon: Globe },
-    { id: 'westernUnion', label: 'Western Union', icon: Globe }
+    { id: 'cash', label: t('cash_on_hand') || 'Cash on Hand', icon: Banknote },
+    { id: 'bank', label: t('bank_account') || 'Bank Account', icon: Building2 },
+    { id: 'wave', label: t('wave_wallet') || 'Wave Wallet', icon: Smartphone },
+    { id: 'aps', label: t('aps_wallet') || 'APS Wallet', icon: Globe },
+    { id: 'orange', label: t('orange_money') || 'Orange Money', icon: Smartphone },
+    { id: 'nafa', label: t('nafa_wallet') || 'NAFA Wallet', icon: Globe },
+    { id: 'westernUnion', label: t('western_union') || 'Western Union', icon: Globe }
   ];
 
   const handleActualBalanceChange = (channelId, value) => {
@@ -41,23 +43,23 @@ export const ChannelReconciliationTable = ({
     <Card className="p-0 sm:p-6 overflow-hidden">
       <div className="p-6 pb-0 sm:pb-6">
         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <Scale className="w-5 h-5 text-blue-600" /> Channel Reconciliation
+          <Scale className="w-5 h-5 text-blue-600" /> {t('channel_reconciliation')}
         </h3>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
-          <thead className="text-[10px] sm:text-xs text-slate-500 uppercase bg-slate-50 border-b">
+          <thead className="text-[10px] sm:text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
             <tr>
-              <th className="px-4 py-3 min-w-[140px]">Channel</th>
-              <th className="px-4 py-3 text-right">Opening</th>
-              <th className="px-4 py-3 text-right whitespace-nowrap">Today +/-</th>
-              <th className="px-4 py-3 text-right">Expected</th>
-              <th className="px-4 py-3 text-right min-w-[120px]">Actual</th>
-              <th className="px-4 py-3 text-right">Diff</th>
-              <th className="px-4 py-3 text-center print:hidden">Action</th>
+              <th className="px-4 py-3 min-w-[140px]">{t('channel')}</th>
+              <th className="px-4 py-3 text-right">{t('opening')}</th>
+              <th className="px-4 py-3 text-right whitespace-nowrap">{t('today_plus_minus')}</th>
+              <th className="px-4 py-3 text-right">{t('expected')}</th>
+              <th className="px-4 py-3 text-right min-w-[120px]">{t('actual')}</th>
+              <th className="px-4 py-3 text-right">{t('diff')}</th>
+              <th className="px-4 py-3 text-center print:hidden">{t('action')}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-200">
             {CHANNELS.map(channel => {
               const opening = currentLiquidity?.openingBalances?.[channel.id] || 0;
               const channelStat = stats?.channelStats?.[channel.id] || { in: 0, out: 0 };
@@ -116,7 +118,7 @@ export const ChannelReconciliationTable = ({
                         onClick={() => createAdjustment(channel.id, diff)}
                         className="py-1 px-2 text-[10px] h-7"
                       >
-                        Adj
+                        {t('action')}
                       </Button>
                     )}
                   </td>
@@ -126,7 +128,7 @@ export const ChannelReconciliationTable = ({
           </tbody>
           <tfoot className="bg-slate-900 text-white font-bold text-[10px] sm:text-xs">
             <tr>
-              <td className="px-4 py-4 rounded-bl-xl">Totals</td>
+              <td className="px-4 py-4 rounded-bl-xl">{t('totals')}</td>
               <td className="px-4 py-4 text-right whitespace-nowrap">{formatCurrency(openingTotal || 0).replace('GMD', '')}</td>
               <td className="px-4 py-4 text-right whitespace-nowrap">
                 {((stats?.returnedToday || 0) - (stats?.issuedToday || 0)) >= 0 ? '+' : ''}

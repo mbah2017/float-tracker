@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { AuthScreen } from './components/AuthScreen';
 import { Dashboard } from './components/Dashboard';
 import { verifySessionToken, createSessionToken } from './utils/crypto';
+import { useLanguage } from './context/LanguageContext';
 
 export default function FloatTrackerApp() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const initAuth = async () => {
@@ -34,7 +36,7 @@ export default function FloatTrackerApp() {
     setUser(null);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-medium">Securing session...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-medium">{t('securing_session')}</div>;
   if (!user) return <AuthScreen onLogin={handleLogin} />;
   return <Dashboard user={user} onLogout={handleLogout} />;
 }

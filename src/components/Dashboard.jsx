@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Wallet, 
   History, 
@@ -17,7 +17,8 @@ import {
   AlertCircle,
   AlertTriangle,
   MessageCircle,
-  BookOpen
+  BookOpen,
+  Globe as GlobeIcon
 } from 'lucide-react';
 import { Button, Badge, Input } from './common';
 import { DashboardView, AgentsView, ReportView, OperatorsView, LiquidityView } from './DashboardViews';
@@ -27,8 +28,10 @@ import { formatCurrency } from '../utils/formatters';
 import { PROVIDERS } from '../constants';
 import { hashPassword, generateId } from '../utils/crypto';
 import { hasPermission, PERMISSIONS, ROLE_PERMISSIONS } from '../constants/permissions';
+import { useLanguage } from '../context/LanguageContext';
 
 export const Dashboard = ({ user, onLogout }) => {
+  const { language, setLanguage, t } = useLanguage();
   const isMaster = user.role === 'master' || !user.role;
   const rootId = isMaster ? user.id : user.masterId;
 
@@ -95,6 +98,10 @@ export const Dashboard = ({ user, onLogout }) => {
   const [editingOperatorId, setEditingOperatorId] = useState(null);
 
   const fileInputRef = useRef(null);
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'fr' : 'en');
+  };
 
   const handleResetSystem = () => {
     if (!confirm('⚠️ CRITICAL WARNING: This will permanently delete ALL data including agents, transactions, and operator accounts. Are you absolutely sure?')) return;
@@ -396,16 +403,22 @@ Served by: ${user.username}`;
             </div>
           </div>
           <div className="flex items-center gap-4">
+             <button 
+               onClick={toggleLanguage}
+               className="flex items-center gap-2 text-blue-200 hover:text-white transition-colors text-sm font-bold bg-blue-800/50 px-3 py-1.5 rounded-lg border border-blue-700"
+             >
+               <GlobeIcon className="w-4 h-4" /> {language.toUpperCase()}
+             </button>
              {canResetSystem && (
                <button 
                  onClick={handleResetSystem} 
                  className="hidden md:flex items-center gap-2 text-red-300 hover:text-red-100 transition-colors text-sm font-bold bg-red-900/50 px-3 py-1.5 rounded-lg border border-red-800"
                >
-                 <AlertTriangle className="w-4 h-4" /> Reset System
+                 <AlertTriangle className="w-4 h-4" /> {t('reset_system')}
                </button>
              )}
              <button onClick={onLogout} className="hidden md:flex items-center gap-2 text-blue-200 hover:text-white transition-colors text-sm font-medium">
-               <LogOut className="w-4 h-4" /> Logout
+               <LogOut className="w-4 h-4" /> {t('logout')}
              </button>
              <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden p-2 hover:bg-blue-800 rounded"><Menu className="w-6 h-6" /></button>
           </div>
@@ -420,12 +433,12 @@ Served by: ${user.username}`;
           </div>
           <div className="space-y-1.5 p-2 md:p-0">
             {[
-              ...(canViewDashboard ? [{ id: 'dashboard', label: 'Dashboard', icon: Wallet }] : []),
-              { id: 'reports', label: 'Reports', icon: History },
-              ...(canViewLiquidity ? [{ id: 'liquidity', label: 'Liquidity', icon: Banknote }] : []),
-              { id: 'agents', label: 'Manage Agents', icon: Users },
-              ...(canManageOperators ? [{ id: 'operators', label: 'Operators', icon: UserCog }] : []),
-              { id: 'training', label: 'Training Manual', icon: BookOpen },
+              ...(canViewDashboard ? [{ id: 'dashboard', label: t('dashboard'), icon: Wallet }] : []),
+              { id: 'reports', label: t('reports'), icon: History },
+              ...(canViewLiquidity ? [{ id: 'liquidity', label: t('liquidity'), icon: Banknote }] : []),
+              { id: 'agents', label: t('manage_agents'), icon: Users },
+              ...(canManageOperators ? [{ id: 'operators', label: t('operators'), icon: UserCog }] : []),
+              { id: 'training', label: t('training_manual'), icon: BookOpen },
             ].map(item => (
               <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3.5 md:py-3 rounded-xl font-semibold transition-all ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm'}`}>
                 <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-white' : 'text-slate-400 group-hover:text-blue-600'}`} /> {item.label}
@@ -433,9 +446,9 @@ Served by: ${user.username}`;
             ))}
           </div>
           <div className="mt-6 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 mx-2 md:mx-0 shadow-sm">
-            <h4 className="font-bold text-blue-900 text-sm mb-1">Quick Action</h4>
+            <h4 className="font-bold text-blue-900 text-sm mb-1">{t('quick_action')}</h4>
             <p className="text-xs text-blue-700/70 mb-4 leading-relaxed">Instantly issue new float to any active sub-agent.</p>
-            <Button variant="primary" className="w-full text-sm py-2.5 shadow-sm" onClick={() => { setSidebarOpen(false); openModal('issue'); }}>Issue Float</Button>
+            <Button variant="primary" className="w-full text-sm py-2.5 shadow-sm" onClick={() => { setSidebarOpen(false); openModal('issue'); }}>{t('issue_float')}</Button>
           </div>
           <div className="mt-8 md:hidden px-2 space-y-2">
              {canResetSystem && (
@@ -443,11 +456,11 @@ Served by: ${user.username}`;
                  onClick={() => { setSidebarOpen(false); handleResetSystem(); }} 
                  className="flex items-center justify-center gap-2 text-red-600 font-bold w-full p-3 bg-red-50 hover:bg-red-100 transition-colors rounded-xl border border-red-100"
                >
-                 <AlertTriangle className="w-5 h-5" /> Reset System
+                 <AlertTriangle className="w-5 h-5" /> {t('reset_system')}
                </button>
              )}
              <button onClick={onLogout} className="flex items-center justify-center gap-2 text-red-600 font-bold w-full p-3 bg-red-50 hover:bg-red-100 transition-colors rounded-xl border border-red-100">
-               <LogOut className="w-5 h-5" /> Logout
+               <LogOut className="w-5 h-5" /> {t('logout')}
              </button>
           </div>
         </aside>
@@ -515,27 +528,27 @@ Served by: ${user.username}`;
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
               <h3 className="text-xl font-bold text-slate-800">
-                {modalType === 'add_agent' ? 'Add New Sub-Agent' : modalType === 'edit_transaction' ? 'Edit Transaction' : modalType === 'issue' ? 'Issue Float' : 'Return Funds'}
+                {modalType === 'add_agent' ? t('add_new_agent') : modalType === 'edit_transaction' ? t('edit_transaction') : modalType === 'issue' ? t('issue_float') : t('return_funds')}
               </h3>
               <button onClick={closeModal} className="p-2 hover:bg-slate-100 rounded-full text-slate-500"><X className="w-5 h-5"/></button>
             </div>
             <div className="p-6 space-y-4">
               {modalType === 'add_agent' ? (
                 <>
-                  <Input label="Full Name" value={agentName} onChange={e => setAgentName(e.target.value)} placeholder="e.g. Modou Sowe" />
-                  <Input label="Location" value={agentLocation} onChange={e => setAgentLocation(e.target.value)} placeholder="e.g. Westfield Junction" />
-                  <Input label="Phone Number" value={agentPhone} onChange={e => setAgentPhone(e.target.value)} placeholder="e.g. 7700000" />
+                  <Input label={t('full_name')} value={agentName} onChange={e => setAgentName(e.target.value)} placeholder="e.g. Modou Sowe" />
+                  <Input label={t('location')} value={agentLocation} onChange={e => setAgentLocation(e.target.value)} placeholder="e.g. Westfield Junction" />
+                  <Input label={t('phone_number')} value={agentPhone} onChange={e => setAgentPhone(e.target.value)} placeholder="e.g. 7700000" />
                 </>
               ) : (
                 <>
                   <div className="mb-4">
-                    <label className="block text-sm font-semibold mb-1">Select Agent</label>
+                    <label className="block text-sm font-semibold mb-1">{t('select_agent')}</label>
                     <select 
                       className="w-full p-3 border rounded-lg bg-white" 
                       value={selectedAgentId} 
                       onChange={e => setSelectedAgentId(e.target.value)}
                     >
-                      <option value="">Select Agent...</option>
+                      <option value="">{t('select_agent')}...</option>
                       {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                     </select>
                   </div>
@@ -544,28 +557,28 @@ Served by: ${user.username}`;
                     <div className="bg-slate-50 p-4 rounded-lg mb-4 space-y-2 border border-slate-100">
                       <div className="flex justify-between items-center">
                          <p className="font-bold text-lg text-slate-800">{agents.find(a => String(a.id) === String(selectedAgentId))?.name}</p>
-                         <Badge color={(agentBalances[selectedAgentId]?.totalDue || 0) > 0 ? 'red' : 'green'}>{(agentBalances[selectedAgentId]?.totalDue || 0) > 0 ? 'Owing' : 'Cleared'}</Badge>
+                         <Badge color={(agentBalances[selectedAgentId]?.totalDue || 0) > 0 ? 'red' : 'green'}>{(agentBalances[selectedAgentId]?.totalDue || 0) > 0 ? t('owing') : t('cleared')}</Badge>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-xs border-t border-slate-200 pt-3">
-                        <div><span className="block text-slate-500 mb-1">Prev. Debt</span><span className="font-semibold text-red-600">{formatCurrency(agentBalances[selectedAgentId]?.prevDebt || 0)}</span></div>
-                        <div className="text-center border-l border-slate-200"><span className="block text-slate-500 mb-1">Today's Float</span><span className="font-semibold text-slate-800">{formatCurrency(agentBalances[selectedAgentId]?.issuedToday || 0)}</span></div>
-                         <div className="text-right border-l border-slate-200 pl-2"><span className="block text-slate-500 mb-1">Total Due</span><span className="font-bold text-red-600 text-sm">{formatCurrency(agentBalances[selectedAgentId]?.totalDue || 0)}</span></div>
+                        <div><span className="block text-slate-500 mb-1">{t('prev_debt')}</span><span className="font-semibold text-red-600">{formatCurrency(agentBalances[selectedAgentId]?.prevDebt || 0)}</span></div>
+                        <div className="text-center border-l border-slate-200"><span className="block text-slate-500 mb-1">{t('todays_float')}</span><span className="font-semibold text-slate-800">{formatCurrency(agentBalances[selectedAgentId]?.issuedToday || 0)}</span></div>
+                         <div className="text-right border-l border-slate-200 pl-2"><span className="block text-slate-500 mb-1">{t('total_due')}</span><span className="font-bold text-red-600 text-sm">{formatCurrency(agentBalances[selectedAgentId]?.totalDue || 0)}</span></div>
                       </div>
                     </div>
                   )}
 
                   {modalType === 'return' && (
                       <div className="mb-4">
-                          <label className="block text-sm font-semibold text-slate-700 mb-2">Transaction Type</label>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">{t('transaction_type')}</label>
                           <div className="grid grid-cols-2 gap-3">
-                              <button onClick={() => setReturnCategory('payment')} className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${returnCategory === 'payment' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 text-slate-500 hover:bg-slate-100'}`}><RefreshCw className="w-6 h-6 mb-1"/><span className="font-bold text-sm">Pay Back Loan</span><span className="text-[10px] opacity-75">Partial or full repayment</span></button>
-                              <button onClick={() => setReturnCategory('checkout')} className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${returnCategory === 'checkout' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-slate-100 bg-slate-50 text-slate-500 hover:bg-slate-100'}`}><LogOut className="w-6 h-6 mb-1"/><span className="font-bold text-sm">Return Float</span><span className="text-[10px] opacity-75">End of day closing</span></button>
+                              <button onClick={() => setReturnCategory('payment')} className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${returnCategory === 'payment' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 text-slate-500 hover:bg-slate-100'}`}><RefreshCw className="w-6 h-6 mb-1"/><span className="font-bold text-sm">{t('pay_back_loan')}</span></button>
+                              <button onClick={() => setReturnCategory('checkout')} className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${returnCategory === 'checkout' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-slate-100 bg-slate-50 text-slate-500 hover:bg-slate-100'}`}><LogOut className="w-6 h-6 mb-1"/><span className="font-bold text-sm">{t('return_float')}</span></button>
                           </div>
                       </div>
                   )}
 
                   <div className="mb-4">
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">{modalType === 'issue' ? 'Source of Funds' : 'Repayment Via'}</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">{modalType === 'issue' ? t('source_of_funds') : t('repayment_via')}</label>
                     <div className="grid grid-cols-2 gap-2">
                       {PROVIDERS.map(p => {
                          const Icon = p.icon;
@@ -579,25 +592,25 @@ Served by: ${user.username}`;
                     </div>
                   </div>
 
-                  <Input label="Amount (GMD)" type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
+                  <Input label={t('amount_gmd')} type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
 
                   {modalType !== 'issue' && selectedAgentId && amount && (
                      <div className={`p-3 rounded text-sm mb-4 flex items-start gap-2 ${parseFloat(amount) < (agentBalances[selectedAgentId]?.totalDue || 0) ? 'bg-amber-50 text-amber-800' : 'bg-green-50 text-green-700'}`}>
                         <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                        <div><span className="font-bold">{parseFloat(amount) < (agentBalances[selectedAgentId]?.totalDue || 0) ? 'Partial Payment:' : 'Full Clearance:'}</span><p>{parseFloat(amount) < (agentBalances[selectedAgentId]?.totalDue || 0) ? `Remaining debt: ${formatCurrency(agentBalances[selectedAgentId].totalDue - amount)}` : 'This payment clears all outstanding debts.'}</p></div>
+                        <div><span className="font-bold">{parseFloat(amount) < (agentBalances[selectedAgentId]?.totalDue || 0) ? t('owing') + ':' : t('cleared') + ':'}</span><p>{parseFloat(amount) < (agentBalances[selectedAgentId]?.totalDue || 0) ? `${t('total_due')}: ${formatCurrency(agentBalances[selectedAgentId].totalDue - amount)}` : t('cleared')}</p></div>
                      </div>
                   )}
 
-                  <Input label="Notes (Optional)" value={note} onChange={e => setNote(e.target.value)} placeholder={modalType === 'issue' ? "e.g. Morning Float" : "e.g. Closing Balance"} />
+                  <Input label={t('notes_optional')} value={note} onChange={e => setNote(e.target.value)} placeholder={modalType === 'issue' ? "e.g. Morning Float" : "e.g. Closing Balance"} />
 
                   <div className="flex items-center justify-between p-3 bg-green-50 border border-green-100 rounded-lg mb-2">
-                      <div className="flex items-center gap-2 text-green-800"><MessageCircle className="w-4 h-4" /><span className="text-sm font-medium">Send WhatsApp Confirmation</span></div>
+                      <div className="flex items-center gap-2 text-green-800"><MessageCircle className="w-4 h-4" /><span className="text-sm font-medium">{t('send_whatsapp')}</span></div>
                       <div className={`w-10 h-6 rounded-full p-1 cursor-pointer transition-colors ${sendWhatsapp ? 'bg-green-500' : 'bg-slate-300'}`} onClick={() => setSendWhatsapp(!sendWhatsapp)}><div className={`w-4 h-4 bg-white rounded-full transition-transform ${sendWhatsapp ? 'translate-x-4' : 'translate-x-0'}`} /></div>
                   </div>
 
                   {modalType === 'issue' && amount > 0 && selectedAgentId && (
                     <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
-                      <div className="flex items-center gap-2 mb-2 font-bold text-slate-800"><Scale className="w-4 h-4" /> Legal Agreement</div>
+                      <div className="flex items-center gap-2 mb-2 font-bold text-slate-800"><Scale className="w-4 h-4" /> {t('legal_agreement')}</div>
                       <p className="mb-2 italic">"I, <strong>{agents.find(a => String(a.id) === String(selectedAgentId))?.name}</strong>, acknowledge receipt of <strong>{formatCurrency(amount)}</strong> on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()} as a float loan from the Master Agent."</p>
                       <p className="font-semibold text-slate-800">"I agree to repay this full amount to the Master Agent by the end of today, before closing at 6:00 PM."</p>
                     </div>
@@ -605,19 +618,19 @@ Served by: ${user.username}`;
 
                   <div className={`flex items-start gap-3 mt-4 p-3 border rounded-lg text-sm transition-colors hover:bg-opacity-50 cursor-pointer ${modalType === 'issue' ? 'bg-blue-50 border-blue-100 text-blue-800' : 'bg-purple-50 border-purple-100 text-purple-800'}`} onClick={() => setConfirmed(!confirmed)}>
                       <div className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center shrink-0 ${confirmed ? (modalType === 'issue' ? 'bg-blue-600 border-blue-600' : 'bg-purple-600 border-purple-600') + ' text-white' : 'bg-white border-slate-300'}`}>{confirmed && <CheckCircle2 className="w-3.5 h-3.5" />}</div>
-                      <label className="font-medium select-none cursor-pointer">{modalType === 'issue' ? "I confirm the agent has agreed to these terms." : (returnCategory === 'checkout' ? "I confirm the final closing balance has been verified." : "I confirm receipt of these funds.")}</label>
+                      <label className="font-medium select-none cursor-pointer">{modalType === 'issue' ? t('confirm_terms') : (returnCategory === 'checkout' ? t('confirm_verified') : t('confirm_receipt'))}</label>
                   </div>
                 </>
               )}
             </div>
             <div className="p-6 border-t border-slate-100 bg-slate-50 rounded-b-2xl flex justify-end gap-3 sticky bottom-0 z-10">
-              <Button variant="secondary" onClick={closeModal}>Cancel</Button>
+              <Button variant="secondary" onClick={closeModal}>{t('cancel')}</Button>
               <Button 
                 variant={modalType === 'issue' || modalType === 'add_agent' ? 'primary' : 'success'} 
                 onClick={modalType === 'add_agent' ? handleAddAgent : handleTransaction} 
                 disabled={modalType === 'add_agent' ? !agentName : (!amount || !confirmed || !selectedAgentId)}
               >
-                {modalType === 'add_agent' ? 'Save Agent' : modalType === 'issue' ? 'Confirm Issue' : 'Confirm Return'}
+                {modalType === 'add_agent' ? t('save_agent') : modalType === 'issue' ? t('confirm_issue') : t('confirm_return')}
               </Button>
             </div>
           </div>
