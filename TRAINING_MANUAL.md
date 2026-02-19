@@ -6,13 +6,6 @@ Welcome to the **Float Tracker** platform. This comprehensive guide is designed 
 
 # Master Agent Guide
 
-### 📑 In this section
-- [1. Onboarding & Setup](#1-onboarding-and-initial-setup)
-- [2. Managing Sub-Agents](#2-managing-sub-agents)
-- [3. Team Management & Permissions](#3-team-management--granular-permissions)
-- [4. Liquidity & Reconciliation](#4-liquidity-management--channel-reconciliation)
-- [5. Reporting and Reconciliation](#5-reporting-and-reconciliation)
-
 ## 1. 🚀 Onboarding and Initial Setup
 The Master Agent is the business owner. Upon your first login, your account is granted full administrative privileges.
 
@@ -74,12 +67,6 @@ The **"Reports"** tab provides full transparency into your history.
 ---
 
 # Operator Guide
-
-### 📑 In this section
-- [1. Getting Started](#1-getting-started)
-- [2. Daily Operations](#2-daily-operations-issuing-and-returning-float)
-- [3. Agent Verification](#3-viewing-agent-information)
-- [4. End-of-Day Procedures](#4-end-of-day-procedures)
 
 ## 1. 👋 Getting Started
 Log in with credentials provided by your manager. Your sidebar will only show the tabs you have been granted permission to use.
