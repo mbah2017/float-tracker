@@ -11,6 +11,7 @@ The Master Agent is the business owner. Upon your first login, your account is g
 
 *   **Business Profile:** Your "Business Name" is the primary identity for your operation. It will appear on all sub-agent confirmations and reports.
 *   **Security:** Your session is protected by signed tokens. If you manually edit your role in the browser, the system will invalidate your session for your protection.
+*   **System Reset:** In the top navigation bar (or mobile sidebar), you have access to the `Reset System` button. This is a "nuclear option" that clears all data. It requires two confirmations and should only be used if you wish to wipe the database entirely.
 
 > **Tip:** Keep your Master Agent credentials secure. Use the **Operators** tab to create separate accounts for your staff.
 
@@ -20,6 +21,7 @@ Your agent network is managed via the **"Manage Agents"** tab.
 #### Onboarding
 *   **Individual Onboarding:** Use `Add Agent` to register agents with their Name, Location, and Phone.
 *   **Bulk Import:** Use the `Template` button to get the CSV format, fill it out, and use `Import` to onboard dozens of agents instantly.
+*   **Mobile Support:** The import and export features are fully optimized for mobile and tablet devices.
 
 #### Monitoring
 *   **Balance Monitoring:** View real-time "Total Due" for every agent. 
@@ -27,12 +29,14 @@ Your agent network is managed via the **"Manage Agents"** tab.
     *   🟢 **Green Balance:** Indicates a cleared account.
 
 ## 3. 🛠️ Team Management & Granular Permissions
-Delegate daily tasks to your staff using the **"Operators"** tab. The system uses a granular permission model to ensure staff only access what they need.
+Delegate daily tasks to your staff using the **"Operators"** tab. The system uses a granular permission model.
 
 #### Managing Staff Accounts
 *   **Creating Operators:** Assign a unique username and a password (min. 6 characters).
 *   **Editing & Updating:** Use the **Edit (pencil)** icon next to any staff member to modify their permissions or update their password after creation.
-*   **Delegated Management:** If you grant an operator the `MANAGE_OPERATORS` permission, they can add and manage other staff members for you. *(Note: Staff cannot edit or delete the Master Agent account).*
+*   **Delegated Management:** If you grant an operator the `MANAGE_OPERATORS` permission, they can add and manage other staff members for you. 
+    *   *Managers* can assign all permissions **except** for `RESET_SYSTEM`.
+    *   Staff cannot edit or delete the Master Agent account or their own account.
 
 #### Key Permissions Explained
 | Permission | Description |
@@ -42,9 +46,16 @@ Delegate daily tasks to your staff using the **"Operators"** tab. The system use
 | `VIEW_LIQUIDITY` | Allows viewing the daily snapshot without editing rights. |
 | `MANAGE_LIQUIDITY` | Grants power to adjust balances and perform the Day-End closing. |
 | `DELETE_TRANSACTION`| Required to remove records from history (Master only by default). |
-| `VIEW_REPORTS` | Access to the daily audit trail and WhatsApp report generation. |
+| `MANAGE_MANUAL` | Allows editing this manual's content and visual theme. |
 
-## 4. 💰 Liquidity Management & Reconciliation
+## 4. 🎨 Customizing the Experience
+Master Agents can customize the look and feel of the documentation via the `Customize Manual` button.
+
+*   **Content Editor:** Rewrite any part of this manual using standard Markdown.
+*   **Typography:** Switch between Modern Sans, Classic Serif, or Technical Mono fonts.
+*   **Theme Colors:** Adjust the interface highlights to match your brand (Blue, Indigo, Purple, Emerald, or Slate).
+
+## 5. 💰 Liquidity Management & Reconciliation
 This is the heart of the system, found under the **"Liquidity"** tab.
 
 #### Understanding Core Metrics
@@ -56,13 +67,6 @@ This is the heart of the system, found under the **"Liquidity"** tab.
 2.  **Adjust Discrepancies:** If your physical cash or wallet balance differs, type the *real* amount into the "Actual" box.
 3.  **Bookkeeping Adjustments:** Use the `Adj` button to automatically create a system log that aligns your records with physical reality.
 4.  **Finalize Closing:** If an "Overall Discrepancy" remains, provide an explanation and click `Finalize & Close Day`. This carries over your *Actual* balances as tomorrow's *Opening* balances.
-
-## 5. 📊 Reporting and Reconciliation
-The **"Reports"** tab provides full transparency into your history.
-
-*   **Date Selection:** View any past day's performance by selecting a date.
-*   **Audit Trail:** Every transaction shows the timestamp and the specific Operator who performed it.
-*   **WhatsApp Reports:** Select an agent and click `WhatsApp` to send them a professional summary of their day's transactions and final balance.
 
 ---
 
@@ -87,10 +91,7 @@ Log in with credentials provided by your manager. Your sidebar will only show th
     *   **Return Float:** For full end-of-day checkout.
 3.  Enter amount and confirm. The system will alert you if the agent's debt is cleared.
 
-## 3. 🔍 Viewing Agent Information
-Use the **"Manage Agents"** tab to verify an agent's creditworthiness. You can see their "Prev. Debt" from yesterday and "Issued Today" to ensure they stay within safe limits.
-
-## 4. 🏁 End-of-Day Procedures
+## 3. 🏁 End-of-Day Procedures
 Before your shift ends:
 *   Ensure every physical transaction is recorded.
 *   Review the **"Reports"** tab for accuracy.
