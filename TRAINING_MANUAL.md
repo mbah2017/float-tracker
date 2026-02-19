@@ -39,14 +39,16 @@ Delegate daily tasks to your staff using the **"Operators"** tab. The system use
     *   Staff cannot edit or delete the Master Agent account or their own account.
 
 #### Key Permissions Explained
+
 | Permission | Description |
 | :--- | :--- |
-| `ISSUE_FLOAT` | Ability to process outbound loans to agents. |
-| `RETURN_FLOAT` | Ability to process inbound repayments from agents. |
-| `VIEW_LIQUIDITY` | Allows viewing the daily snapshot without editing rights. |
-| `MANAGE_LIQUIDITY` | Grants power to adjust balances and perform the Day-End closing. |
-| `DELETE_TRANSACTION`| Required to remove records from history (Master only by default). |
-| `MANAGE_MANUAL` | Allows editing this manual's content and visual theme. |
+| **ISSUE_FLOAT** | Ability to process outbound loans to agents. |
+| **RETURN_FLOAT** | Ability to process inbound repayments from agents. |
+| **VIEW_LIQUIDITY** | Allows viewing the daily snapshot without editing rights. |
+| **MANAGE_LIQUIDITY** | Grants power to adjust balances and perform the Day-End closing. |
+| **DELETE_TRANSACTION** | Required to remove records from history (Master only by default). |
+| **MANAGE_MANUAL** | Allows editing this manual's content and visual theme. |
+| **RESET_SYSTEM** | High-level access to wipe all local data from the device. |
 
 ## 4. 🎨 Customizing the Experience
 Master Agents can customize the look and feel of the documentation via the `Customize Manual` button.

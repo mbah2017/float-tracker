@@ -313,10 +313,10 @@ export const TrainingManualView = ({ user, rootId }) => {
                         <table className="w-full border-collapse">{children}</table>
                       </div>
                     ),
-                    thead: ({children}) => <thead className="bg-slate-50">{children}</thead>,
-                    tbody: ({children}) => <tbody className="divide-y divide-slate-50">{children}</tbody>,
-                    th: ({children}) => <th className="p-5 text-left text-slate-900 font-black uppercase text-[10px] tracking-[0.2em]">{children}</th>,
-                    td: ({children}) => <td className="p-5 text-slate-600 text-sm font-medium">{children}</td>
+                    thead: ({children}) => <thead className="bg-slate-50 border-b border-slate-200">{children}</thead>,
+                    tbody: ({children}) => <tbody className="divide-y divide-slate-200">{children}</tbody>,
+                    th: ({children}) => <th className="p-5 text-left text-slate-900 font-black uppercase text-[10px] tracking-[0.2em] border-r border-slate-200 last:border-r-0">{children}</th>,
+                    td: ({children}) => <td className="p-5 text-slate-600 text-sm font-medium border-r border-slate-100 last:border-r-0">{children}</td>
                   }}
                 >
                   {currentContent}
