@@ -718,7 +718,13 @@ export const OperatorsView = ({
               <label className="text-xs font-black uppercase tracking-widest text-slate-400">Permissions</label>
               <div className="grid grid-cols-1 gap-2">
                 {Object.entries(PERMISSIONS)
-                  .filter(([_, value]) => hasPermission(user, value))
+                  .filter(([_, value]) => {
+                    const isMaster = user.role === 'master' || !user.role;
+                    // Specifically block RESET_SYSTEM for anyone who isn't a Master
+                    if (value === PERMISSIONS.RESET_SYSTEM) return isMaster;
+                    // Allow Managers to assign all other permissions
+                    return true;
+                  })
                   .map(([key, value]) => {
                     return (
                       <label key={key} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors border border-slate-100">
