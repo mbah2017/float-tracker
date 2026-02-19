@@ -2,8 +2,6 @@
 
 Welcome to the **Float Tracker** platform. This comprehensive guide is designed to help Master Agents and Operators navigate the system efficiently, manage liquidity with precision, and maintain a high-performing agent network.
 
----
-
 # Master Agent Guide
 
 ## 1. 🚀 Onboarding and Initial Setup
@@ -53,7 +51,7 @@ Delegate daily tasks to your staff using the **"Operators"** tab. The system use
 | **VIEW_ISSUED_TODAY** | Visibility of total funds issued during the current day. |
 | **VIEW_REPAID_TODAY** | Visibility of total funds repaid during the current day. |
 | **VIEW_TEAM_DEBT** | Visibility of the total outstanding debt across all agents. |
-| **VIEW_TOTAL_LIQUIDITY**| Visibility of the Total Operational Liquidity (Actual + Debt). |
+| **VIEW_TOTAL_LIQUIDITY** | Visibility of the Total Operational Liquidity (Actual + Debt). |
 
 ## 4. 🎨 Customizing the Experience
 Master Agents can customize the look and feel of the documentation via the `Customize Manual` button.
@@ -74,8 +72,6 @@ This is the heart of the system, found under the **"Liquidity"** tab.
 2.  **Adjust Discrepancies:** If your physical cash or wallet balance differs, type the *real* amount into the "Actual" box.
 3.  **Bookkeeping Adjustments:** Use the `Adj` button to automatically create a system log that aligns your records with physical reality.
 4.  **Finalize Closing:** If an "Overall Discrepancy" remains, provide an explanation and click `Finalize & Close Day`. This carries over your *Actual* balances as tomorrow's *Opening* balances.
-
----
 
 # Operator Guide
 

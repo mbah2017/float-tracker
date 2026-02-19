@@ -46,10 +46,15 @@ export const TrainingManualView = ({ user, rootId }) => {
 
   const canManageManual = hasPermission(user, PERMISSIONS.MANAGE_MANUAL);
 
-  // Split content into Master and Operator sections manually
-  const sections = content.split('---');
-  const masterContent = sections.find(s => s.includes('# Master Agent Guide')) || '';
-  const operatorContent = sections.find(s => s.includes('# Operator Guide')) || '';
+  // Robustly split content by identifying the start of the major sections
+  const getSection = (title) => {
+    const rx = new RegExp(`# ${title}[\\s\\S]*?(?=# (?:Master|Operator) Guide|$)`, 'i');
+    const match = content.match(rx);
+    return match ? match[0] : '';
+  };
+
+  const masterContent = getSection('Master Agent Guide');
+  const operatorContent = getSection('Operator Guide');
   
   const currentContent = activeTab === 'master' ? masterContent.trim() : operatorContent.trim();
 
