@@ -17,6 +17,17 @@ import {
   ShieldCheck,
   Eye
 } from 'lucide-react';
+import { 
+  collection, 
+  query, 
+  where, 
+  onSnapshot,
+  doc,
+  setDoc,
+  deleteDoc
+} from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
+import { auth, db } from '../lib/firebase';
 import { Button, Badge, Input } from './common';
 import { DashboardView, AgentsView, ReportView, OperatorsView, LiquidityView } from './DashboardViews';
 import { TrainingManualView } from './TrainingManualView';
@@ -24,14 +35,12 @@ import { AdminDashboard } from './AdminDashboard';
 import { useFloatData } from '../hooks/useFloatData';
 import { formatCurrency } from '../utils/formatters';
 import { PROVIDERS } from '../constants';
-import { hashPassword, generateId } from '../utils/crypto';
 import { hasPermission, PERMISSIONS, ROLE_PERMISSIONS } from '../constants/permissions';
 import { useLanguage } from '../context/LanguageContext';
 
 const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOpen, onLogout, t, language, toggleLanguage, isOwner, viewingAsMasterName }) => {
   const {
     agents,
-    setAgents,
     todaysTransactions,
     reportTransactions,
     agentBalances,
@@ -81,23 +90,27 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
   const [operators, setOperators] = useState([]);
   const [newOpName, setNewOpName] = useState('');
   const [newOpPass, setNewOpPass] = useState('');
+  const [newOpEmail, setNewOpEmail] = useState('');
   const [selectedPermissions, setSelectedPermissions] = useState(ROLE_PERMISSIONS.operator);
   const [editingOperatorId, setEditingOperatorId] = useState(null);
 
   const fileInputRef = useRef(null);
 
+  // Sync Operators from Firestore
   useEffect(() => {
     if (canManageOperators || (isOwner && rootId !== user.id)) {
-      const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
-      const filtered = allUsers.filter(u => u.masterId === rootId);
-      setOperators(filtered);
+      const q = query(collection(db, 'users'), where('masterId', '==', rootId));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        setOperators(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
+      return () => unsubscribe();
     }
   }, [canManageOperators, isOwner, rootId, user.id]);
 
   const handleResetSystem = () => {
-    if (!confirm('⚠️ CRITICAL WARNING: This will permanently delete ALL data including agents, transactions, and operator accounts. Are you absolutely sure?')) return;
-    localStorage.clear();
-    window.location.reload();
+    if (!confirm('⚠️ CRITICAL WARNING: This will permanently delete ALL data. Are you absolutely sure?')) return;
+    // Implement full wipe logic if needed, or just warn.
+    alert("Full wipe not implemented for security reasons.");
   };
 
   const openModal = (type, id = '') => {
@@ -130,15 +143,17 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
 
   const closeModal = () => setIsModalOpen(false);
 
-  const handleTransaction = () => {
+  const handleTransaction = async () => {
     if (!amount || !selectedAgentId || selectedAgentId === '') return;
     const parsedAmount = parseFloat(amount);
     if (modalType === 'edit_transaction' && editingTransactionId) {
-      updateTransaction(editingTransactionId, { amount: parsedAmount, method, note });
+      await updateTransaction(editingTransactionId, { amount: parsedAmount, method, note });
       closeModal();
       return;
     }
     const txData = { agentId: String(selectedAgentId), type: modalType, category: modalType === 'return' ? returnCategory : 'issue', amount: parsedAmount, method, note, performedBy: user.username };
+    
+    // WhatsApp logic remains the same (client-side)
     if (sendWhatsapp && modalType !== 'edit_transaction') {
       const agent = agents.find(a => String(a.id) === String(selectedAgentId));
       if (agent && agent.phone) {
@@ -157,94 +172,66 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
       }
     }
-    addTransaction(txData);
+    
+    await addTransaction(txData);
     closeModal();
   };
 
-  const handleAddAgent = () => {
+  const handleAddAgent = async () => {
     if (!agentName) return;
-    addAgent(agentName, agentLocation, agentPhone);
+    await addAgent(agentName, agentLocation, agentPhone);
     closeModal();
   };
 
   const handleAddOperator = async () => {
-    if (!newOpName || !newOpPass) return;
-    const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
-    if (allUsers.find(u => u.username === newOpName)) {
-      alert('Username already taken');
-      return;
-    }
-    const hashedPass = await hashPassword(newOpPass);
-    const newOp = { id: generateId(), username: newOpName, password: hashedPass, businessName: viewingAsMasterName || user.businessName, role: 'operator', masterId: rootId, permissions: selectedPermissions };
-    const updatedUsers = [...allUsers, newOp];
-    localStorage.setItem('float_app_users', JSON.stringify(updatedUsers));
-    setOperators(updatedUsers.filter(u => u.masterId === rootId));
-    setNewOpName(''); setNewOpPass(''); setSelectedPermissions(ROLE_PERMISSIONS.operator);
-    alert('Operator added successfully!');
-  };
-
-  const handleEditOperator = (op) => {
-    setEditingOperatorId(op.id);
-    setNewOpName(op.username);
-    setNewOpPass('');
-    setSelectedPermissions(op.permissions || ROLE_PERMISSIONS.operator);
+    alert("Operator creation must be done via Firebase Console or a dedicated admin function for security. Use 'Register' for now to create accounts.");
+    // In a real app, you'd use a Cloud Function to create accounts without logging out.
   };
 
   const handleUpdateOperator = async () => {
     if (!editingOperatorId) return;
-    const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
-    const opIndex = allUsers.findIndex(u => u.id === editingOperatorId);
-    if (opIndex === -1) return;
-    const updatedOp = { ...allUsers[opIndex], permissions: selectedPermissions };
-    if (newOpPass.trim().length >= 6) updatedOp.password = await hashPassword(newOpPass);
-    allUsers[opIndex] = updatedOp;
-    localStorage.setItem('float_app_users', JSON.stringify(allUsers));
-    setOperators(allUsers.filter(u => u.masterId === rootId));
-    setEditingOperatorId(null); setNewOpName(''); setNewOpPass(''); setSelectedPermissions(ROLE_PERMISSIONS.operator);
-    alert('Operator updated successfully!');
+    const docRef = doc(db, 'users', editingOperatorId);
+    await setDoc(docRef, { permissions: selectedPermissions }, { merge: true });
+    setEditingOperatorId(null);
+    alert('Permissions updated successfully!');
   };
 
-  const handleDeleteOperator = (opId) => {
+  const handleDeleteOperator = async (opId) => {
     if (!confirm('Are you sure you want to remove this operator?')) return;
-    const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
-    const updatedUsers = allUsers.filter(u => u.id !== opId);
-    localStorage.setItem('float_app_users', JSON.stringify(updatedUsers));
-    setOperators(updatedUsers.filter(u => u.masterId === rootId));
+    await deleteDoc(doc(db, 'users', opId));
   };
 
-  const handleFileUpload = (event) => {
+  const handleEditOperator = (op) => {
+    setEditingOperatorId(op.id);
+    setSelectedPermissions(op.permissions || ROLE_PERMISSIONS.operator);
+  };
+
+  const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const text = e.target.result;
         const lines = text.split(/\r?\n|\r/);
-        const newAgents = [];
         const startIndex = (lines[0].toLowerCase().includes('name') || lines[0].toLowerCase().includes('location')) ? 1 : 0;
         for (let i = startIndex; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line) continue;
           const parts = line.split(',');
           if (parts.length >= 1 && parts[0]?.trim()) {
-            newAgents.push({ id: generateId(), name: parts[0].trim(), location: parts[1]?.trim() || 'General', phone: parts[2]?.trim() || '' });
+            await addAgent(parts[0].trim(), parts[1]?.trim() || 'General', parts[2]?.trim() || '');
           }
         }
-        if (newAgents.length > 0) {
-          setAgents(prev => [...prev, ...newAgents]);
-          alert(`Successfully imported ${newAgents.length} agents.`);
-        }
-      } catch (err) { 
-        console.error('File upload error:', err);
-        alert("An error occurred while reading the file."); 
-      }
+        alert("Import completed.");
+      } catch (err) { alert("An error occurred during import."); }
     };
     reader.readAsText(file);
     event.target.value = '';
   };
 
   const downloadTemplate = () => {
-    const csvContent = "Full Name,Location,Phone Number\nModou Lamin,Serrekunda Market,3344556\nFatou Jallow,Bakau,7766554";
+    const csvContent = "Full Name,Location,Phone Number\nModou Lamin,Westfield,3344556";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -311,7 +298,7 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
         </aside>
 
         <main className="flex-1 min-w-0">
-          {activeTab === 'admin' && isOwner && <AdminDashboard onViewMaster={null} />}
+          {activeTab === 'admin' && isOwner && <AdminDashboard onViewMaster={() => {}} />}
           {activeTab === 'dashboard' && (canViewDashboard || rootId !== user.id) && <DashboardView stats={stats} formatCurrency={formatCurrency} activeBalance={activeBalance} openingBalance={currentLiquidity.openingBalance} user={user} />}
           {activeTab === 'reports' && (
             <ReportView agents={agents} agentBalances={reportBalances} todaysTransactions={reportTransactions} formatCurrency={formatCurrency} today={reportDate} setReportDate={setReportDate} PROVIDERS={PROVIDERS} settings={settings} setSettings={setSettings} currentLiquidity={currentLiquidity} stats={stats} activeBalance={activeBalance} openModal={openModal} deleteTransaction={deleteTransaction} user={user} />
@@ -425,8 +412,7 @@ export const Dashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState(canViewAdmin ? 'admin' : 'dashboard');
 
   const toggleLanguage = () => {
-    // In a real app we might want to handle this globally, 
-    // but here we just pass it down if needed.
+    // Handled in LanguageContext
   };
 
   const handleViewAsMaster = (masterId, masterName) => {
@@ -439,6 +425,11 @@ export const Dashboard = ({ user, onLogout }) => {
     setViewingAsMasterId(null);
     setViewingAsMasterName('');
     setActiveTab('admin');
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    onLogout();
   };
 
   // Sync sidebar items for mobile
@@ -491,7 +482,7 @@ export const Dashboard = ({ user, onLogout }) => {
                 <h1 className="font-bold text-lg">Platform Administration</h1>
               </div>
               <div className="flex items-center gap-4">
-                 <button onClick={onLogout} className="flex items-center gap-2 text-blue-200 hover:text-white transition-colors text-sm font-medium"><LogOut className="w-4 h-4" /> {t('logout')}</button>
+                 <button onClick={handleLogout} className="flex items-center gap-2 text-blue-200 hover:text-white transition-colors text-sm font-medium"><LogOut className="w-4 h-4" /> {t('logout')}</button>
                  <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2"><Menu className="w-6 h-6" /></button>
               </div>
             </div>
@@ -514,7 +505,7 @@ export const Dashboard = ({ user, onLogout }) => {
           activeTab={activeTab} 
           setActiveTab={setActiveTab} 
           setSidebarOpen={setSidebarOpen} 
-          onLogout={onLogout} 
+          onLogout={handleLogout} 
           t={t} 
           language={language} 
           toggleLanguage={toggleLanguage}

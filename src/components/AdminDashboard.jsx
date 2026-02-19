@@ -3,17 +3,23 @@ import {
   Users, 
   Search, 
   Trash2, 
-  UserPlus, 
   AlertCircle,
   Building2,
-  Phone,
-  Mail,
   Calendar,
   ChevronRight,
   ShieldCheck,
   Eye
 } from 'lucide-react';
-import { Button, Input, Badge } from './common';
+import { 
+  collection, 
+  query, 
+  where, 
+  onSnapshot,
+  doc,
+  deleteDoc
+} from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { Button, Badge } from './common';
 
 export const AdminDashboard = ({ onViewMaster }) => {
   const [masters, setMasters] = useState([]);
@@ -21,30 +27,37 @@ export const AdminDashboard = ({ onViewMaster }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchMasters = () => {
-      setLoading(true);
-      const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
-      // Filter for users with 'master' role or no role (default)
-      const masterUsers = allUsers.filter(u => u.role === 'master' || !u.role);
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('role', '==', 'master'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const masterUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setMasters(masterUsers);
       setLoading(false);
-    };
+    }, (error) => {
+      console.error("Error fetching masters:", error);
+      setLoading(false);
+    });
 
-    fetchMasters();
+    return () => unsubscribe();
   }, []);
 
-  const handleDeleteMaster = (id) => {
+  const handleDeleteMaster = async (id) => {
     if (!confirm('Are you sure you want to delete this Master Agent account? This will NOT delete their business data, only their access.')) return;
     
-    const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
-    const updatedUsers = allUsers.filter(u => u.id !== id);
-    localStorage.setItem('float_app_users', JSON.stringify(updatedUsers));
-    setMasters(updatedUsers.filter(u => u.role === 'master' || !u.role));
+    try {
+      await deleteDoc(doc(db, 'users', id));
+      // No need to manually update state, onSnapshot will handle it
+    } catch (error) {
+      console.error("Error deleting master:", error);
+      alert("Failed to delete master agent.");
+    }
   };
 
   const filteredMasters = masters.filter(m => 
-    m.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (m.businessName && m.businessName.toLowerCase().includes(searchTerm.toLowerCase()))
+    (m.username?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (m.businessName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (m.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -119,8 +132,8 @@ export const AdminDashboard = ({ onViewMaster }) => {
               <thead>
                 <tr className="bg-slate-50/50 text-slate-500 text-[10px] uppercase tracking-wider font-bold">
                   <th className="px-6 py-4">Business & User</th>
+                  <th className="px-6 py-4">Email</th>
                   <th className="px-6 py-4">Role</th>
-                  <th className="px-6 py-4">Platform Stats</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -130,30 +143,21 @@ export const AdminDashboard = ({ onViewMaster }) => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 font-bold shadow-sm">
-                          {(master.businessName || master.username).charAt(0).toUpperCase()}
+                          {(master.businessName || master.username || '?').charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <p className="font-bold text-slate-800">{master.businessName || 'Unnamed Business'}</p>
                           <p className="text-xs text-slate-500 flex items-center gap-1">
-                            <User className="w-3 h-3" /> @{master.username}
+                            <Users className="w-3 h-3" /> @{master.username}
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <Badge color="blue">Master Agent</Badge>
+                    <td className="px-6 py-4 text-sm text-slate-600">
+                      {master.email}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-4 text-xs text-slate-500">
-                        <div className="text-center">
-                          <span className="block font-bold text-slate-700">--</span>
-                          <span>Agents</span>
-                        </div>
-                        <div className="text-center">
-                          <span className="block font-bold text-slate-700">--</span>
-                          <span>Ops</span>
-                        </div>
-                      </div>
+                      <Badge color="blue">Master Agent</Badge>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -191,7 +195,3 @@ export const AdminDashboard = ({ onViewMaster }) => {
     </div>
   );
 };
-
-// Helper components if needed or they are already in common.jsx
-const User = ({ className }) => <Users className={className} />;
-const CalendarIcon = ({ className }) => <Calendar className={className} />;

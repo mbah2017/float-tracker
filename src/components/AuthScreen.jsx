@@ -1,15 +1,45 @@
-import React, { useState } from 'react';
-import { Banknote, Building2, Lock, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword,
+  onAuthStateChanged
+} from 'firebase/auth';
+import { 
+  doc, 
+  setDoc, 
+  getDoc, 
+  collection, 
+  query, 
+  getDocs, 
+  limit 
+} from 'firebase/firestore';
+import { Banknote, Building2, Lock, AlertCircle, Loader2, ShieldCheck, Mail } from 'lucide-react';
 import { Input, Button } from './common';
-import { hashPassword, generateId } from '../utils/crypto';
+import { auth, db } from '../lib/firebase';
 import { useLanguage } from '../context/LanguageContext';
 
 export const AuthScreen = ({ onLogin }) => {
   const { t } = useLanguage();
   const [isRegistering, setIsRegistering] = useState(false);
-  const [formData, setFormData] = useState({ username: '', password: '', businessName: '' });
+  const [formData, setFormData] = useState({ email: '', password: '', businessName: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isFirstUser, setIsFirstUser] = useState(false);
+
+  // Check if any users exist to determine if the next registration is the owner
+  useEffect(() => {
+    const checkFirstUser = async () => {
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, limit(1));
+        const querySnapshot = await getDocs(q);
+        setIsFirstUser(querySnapshot.empty);
+      } catch (err) {
+        console.error("Error checking users:", err);
+      }
+    };
+    checkFirstUser();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -18,14 +48,11 @@ export const AuthScreen = ({ onLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const username = formData.username.trim();
+    const email = formData.email.trim();
     const password = formData.password;
     const businessName = formData.businessName.trim();
 
-    const users = JSON.parse(localStorage.getItem('float_app_users') || '[]');
-    const isFirstUser = users.length === 0;
-
-    if (!username || !password || (isRegistering && !businessName && !isFirstUser)) {
+    if (!email || !password || (isRegistering && !businessName && !isFirstUser)) {
       setError(t('fields_required'));
       return;
     }
@@ -37,53 +64,61 @@ export const AuthScreen = ({ onLogin }) => {
 
     setLoading(true);
     try {
-      const hashedPass = await hashPassword(password);
-
       if (isRegistering) {
-        if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
-          setError(t('username_exists'));
-          setLoading(false);
-          return;
-        }
+        // Create user in Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const firebaseUser = userCredential.user;
         
-        // First user is always OWNER. Others are MASTER.
+        // Determine role
         const userRole = isFirstUser ? 'owner' : 'master';
+        const finalBusinessName = isFirstUser ? 'Platform Administration' : (businessName || 'My Business');
 
         const newUser = { 
-          id: generateId(),
-          username: username, 
-          password: hashedPass, 
-          businessName: isFirstUser ? 'Platform Administration' : (businessName || 'My Business'),
-          role: userRole
+          id: firebaseUser.uid,
+          username: email.split('@')[0], // Use part of email as username
+          email: email,
+          businessName: finalBusinessName,
+          role: userRole,
+          createdAt: new Date().toISOString()
         };
-        users.push(newUser);
-        localStorage.setItem('float_app_users', JSON.stringify(users));
+
+        // Store in Firestore
+        await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
         
         if (isFirstUser) {
            alert('Platform Owner Account Created Successfully!');
         } else {
-           alert(t('welcome_message').replace('{name}', businessName));
+           alert(t('welcome_message').replace('{name}', finalBusinessName));
         }
         
         onLogin(newUser);
       } else {
-        const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === hashedPass);
-        if (user) {
-          onLogin(user);
+        // Sign in with Firebase Auth
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const firebaseUser = userCredential.user;
+        
+        // Get metadata from Firestore
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (userDoc.exists()) {
+          onLogin(userDoc.data());
         } else {
-          setError(t('invalid_credentials'));
+          // This shouldn't happen if they registered through the app
+          setError("User data not found in database.");
         }
       }
     } catch (err) {
       console.error('Auth error:', err);
-      setError(t('unexpected_error'));
+      if (err.code === 'auth/email-already-in-use') {
+        setError(t('username_exists'));
+      } else if (err.code === 'auth/invalid-credential') {
+        setError(t('invalid_credentials'));
+      } else {
+        setError(err.message || t('unexpected_error'));
+      }
     } finally {
       setLoading(false);
     }
   };
-
-  const usersCount = JSON.parse(localStorage.getItem('float_app_users') || '[]').length;
-  const isFirstUser = usersCount === 0;
 
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans text-slate-900">
@@ -153,12 +188,14 @@ export const AuthScreen = ({ onLogin }) => {
             )}
             
             <Input 
-              name="username"
-              label={t('username')} 
-              placeholder={t('username_placeholder')} 
-              value={formData.username}
+              name="email"
+              type="email"
+              label="Email Address" 
+              placeholder="user@example.com" 
+              value={formData.email}
               onChange={handleChange}
               disabled={loading}
+              icon={Mail}
             />
             
             <Input 
