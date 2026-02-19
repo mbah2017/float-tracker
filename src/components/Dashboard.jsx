@@ -402,7 +402,15 @@ Served by: ${user.username}`;
             <p className="text-xs text-blue-700/70 mb-4 leading-relaxed">Instantly issue new float to any active sub-agent.</p>
             <Button variant="primary" className="w-full text-sm py-2.5 shadow-sm" onClick={() => { setSidebarOpen(false); openModal('issue'); }}>Issue Float</Button>
           </div>
-          <div className="mt-8 md:hidden px-2">
+          <div className="mt-8 md:hidden px-2 space-y-2">
+             {canResetSystem && (
+               <button 
+                 onClick={() => { setSidebarOpen(false); handleResetSystem(); }} 
+                 className="flex items-center justify-center gap-2 text-red-600 font-bold w-full p-3 bg-red-50 hover:bg-red-100 transition-colors rounded-xl border border-red-100"
+               >
+                 <AlertTriangle className="w-5 h-5" /> Reset System
+               </button>
+             )}
              <button onClick={onLogout} className="flex items-center justify-center gap-2 text-red-600 font-bold w-full p-3 bg-red-50 hover:bg-red-100 transition-colors rounded-xl border border-red-100">
                <LogOut className="w-5 h-5" /> Logout
              </button>
