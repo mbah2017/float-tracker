@@ -717,21 +717,23 @@ export const OperatorsView = ({
             <div className="space-y-2 pt-2">
               <label className="text-xs font-black uppercase tracking-widest text-slate-400">Permissions</label>
               <div className="grid grid-cols-1 gap-2">
-                {Object.entries(PERMISSIONS).map(([key, value]) => {
-                  return (
-                    <label key={key} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors border border-slate-100">
-                      <input 
-                        type="checkbox" 
-                        checked={selectedPermissions.includes(value)}
-                        onChange={() => togglePermission(value)}
-                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <div>
-                        <span className="block text-xs font-bold text-slate-700">{key.replace(/_/g, ' ')}</span>
-                      </div>
-                    </label>
-                  );
-                })}
+                {Object.entries(PERMISSIONS)
+                  .filter(([_, value]) => hasPermission(user, value))
+                  .map(([key, value]) => {
+                    return (
+                      <label key={key} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors border border-slate-100">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedPermissions.includes(value)}
+                          onChange={() => togglePermission(value)}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="block text-xs font-bold text-slate-700">{key.replace(/_/g, ' ')}</span>
+                        </div>
+                      </label>
+                    );
+                  })}
               </div>
             </div>
 
