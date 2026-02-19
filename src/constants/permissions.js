@@ -9,6 +9,7 @@ export const PERMISSIONS = {
   CLOSE_DAY: 'close_day',
   ADMIN_UNLOCK: 'admin_unlock',
   DELETE_TRANSACTION: 'delete_transaction',
+  RESET_SYSTEM: 'reset_system',
 };
 
 export const ROLE_PERMISSIONS = {

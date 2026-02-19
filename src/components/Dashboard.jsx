@@ -34,6 +34,7 @@ export const Dashboard = ({ user, onLogout }) => {
 
   const canManageOperators = hasPermission(user, PERMISSIONS.MANAGE_OPERATORS);
   const canViewLiquidity = hasPermission(user, PERMISSIONS.VIEW_LIQUIDITY) || hasPermission(user, PERMISSIONS.MANAGE_LIQUIDITY);
+  const canResetSystem = hasPermission(user, PERMISSIONS.RESET_SYSTEM);
 
   const {
     agents,
@@ -93,6 +94,14 @@ export const Dashboard = ({ user, onLogout }) => {
   const [editingOperatorId, setEditingOperatorId] = useState(null);
 
   const fileInputRef = useRef(null);
+
+  const handleResetSystem = () => {
+    if (!confirm('⚠️ CRITICAL WARNING: This will permanently delete ALL data including agents, transactions, and operator accounts. Are you absolutely sure?')) return;
+    if (!confirm('FINAL CONFIRMATION: Type "DELETE" in the browser console if you want to proceed. Just kidding, click OK to wipe everything.')) return;
+    
+    localStorage.clear();
+    window.location.reload();
+  };
 
   const openModal = (type, id = '') => {
     setModalType(type);
@@ -352,6 +361,14 @@ Served by: ${user.username}`;
             </div>
           </div>
           <div className="flex items-center gap-4">
+             {canResetSystem && (
+               <button 
+                 onClick={handleResetSystem} 
+                 className="hidden md:flex items-center gap-2 text-red-300 hover:text-red-100 transition-colors text-sm font-bold bg-red-900/50 px-3 py-1.5 rounded-lg border border-red-800"
+               >
+                 <AlertTriangle className="w-4 h-4" /> Reset System
+               </button>
+             )}
              <button onClick={onLogout} className="hidden md:flex items-center gap-2 text-blue-200 hover:text-white transition-colors text-sm font-medium">
                <LogOut className="w-4 h-4" /> Logout
              </button>
