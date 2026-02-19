@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { Button, Input, Badge } from './common';
 
-export const AdminDashboard = ({ user, onViewMaster }) => {
+export const AdminDashboard = ({ onViewMaster }) => {
   const [masters, setMasters] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);

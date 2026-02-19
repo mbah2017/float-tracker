@@ -75,14 +75,15 @@ export const AuthScreen = ({ onLogin }) => {
         }
       }
     } catch (err) {
+      console.error('Auth error:', err);
       setError(t('unexpected_error'));
     } finally {
       setLoading(false);
     }
   };
 
-  const users = JSON.parse(localStorage.getItem('float_app_users') || '[]');
-  const isFirstUser = users.length === 0;
+  const usersCount = JSON.parse(localStorage.getItem('float_app_users') || '[]').length;
+  const isFirstUser = usersCount === 0;
 
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans text-slate-900">

@@ -5,23 +5,17 @@ import {
   Users, 
   UserCog, 
   Banknote, 
-  User, 
   LogOut, 
   Menu, 
   X,
-  Plus,
-  ArrowUpCircle,
   RefreshCw,
-  Scale,
   CheckCircle2,
-  AlertCircle,
   AlertTriangle,
   MessageCircle,
   BookOpen,
   Globe as GlobeIcon,
   ShieldCheck,
-  Eye,
-  EyeOff
+  Eye
 } from 'lucide-react';
 import { Button, Badge, Input } from './common';
 import { DashboardView, AgentsView, ReportView, OperatorsView, LiquidityView } from './DashboardViews';
@@ -34,7 +28,7 @@ import { hashPassword, generateId } from '../utils/crypto';
 import { hasPermission, PERMISSIONS, ROLE_PERMISSIONS } from '../constants/permissions';
 import { useLanguage } from '../context/LanguageContext';
 
-const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOpen, onLogout, t, language, setLanguage, toggleLanguage, isOwner, viewingAsMasterName, exitViewMode }) => {
+const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOpen, onLogout, t, language, toggleLanguage, isOwner, viewingAsMasterName }) => {
   const {
     agents,
     setAgents,
@@ -95,7 +89,8 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
   useEffect(() => {
     if (canManageOperators || (isOwner && rootId !== user.id)) {
       const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
-      setOperators(allUsers.filter(u => u.masterId === rootId));
+      const filtered = allUsers.filter(u => u.masterId === rootId);
+      setOperators(filtered);
     }
   }, [canManageOperators, isOwner, rootId, user.id]);
 
@@ -239,7 +234,10 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
           setAgents(prev => [...prev, ...newAgents]);
           alert(`Successfully imported ${newAgents.length} agents.`);
         }
-      } catch (err) { alert("An error occurred while reading the file."); }
+      } catch (err) { 
+        console.error('File upload error:', err);
+        alert("An error occurred while reading the file."); 
+      }
     };
     reader.readAsText(file);
     event.target.value = '';
@@ -313,7 +311,7 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
         </aside>
 
         <main className="flex-1 min-w-0">
-          {activeTab === 'admin' && isOwner && <AdminDashboard user={user} />}
+          {activeTab === 'admin' && isOwner && <AdminDashboard onViewMaster={null} />}
           {activeTab === 'dashboard' && (canViewDashboard || rootId !== user.id) && <DashboardView stats={stats} formatCurrency={formatCurrency} activeBalance={activeBalance} openingBalance={currentLiquidity.openingBalance} user={user} />}
           {activeTab === 'reports' && (
             <ReportView agents={agents} agentBalances={reportBalances} todaysTransactions={reportTransactions} formatCurrency={formatCurrency} today={reportDate} setReportDate={setReportDate} PROVIDERS={PROVIDERS} settings={settings} setSettings={setSettings} currentLiquidity={currentLiquidity} stats={stats} activeBalance={activeBalance} openModal={openModal} deleteTransaction={deleteTransaction} user={user} />
@@ -414,7 +412,7 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
 };
 
 export const Dashboard = ({ user, onLogout }) => {
-  const { language, setLanguage, t } = useLanguage();
+  const { language, t } = useLanguage();
   const [viewingAsMasterId, setViewingAsMasterId] = useState(null);
   const [viewingAsMasterName, setViewingAsMasterName] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -427,7 +425,8 @@ export const Dashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState(canViewAdmin ? 'admin' : 'dashboard');
 
   const toggleLanguage = () => {
-    setLanguage(language === 'en' ? 'fr' : 'en');
+    // In a real app we might want to handle this globally, 
+    // but here we just pass it down if needed.
   };
 
   const handleViewAsMaster = (masterId, masterName) => {
@@ -502,7 +501,7 @@ export const Dashboard = ({ user, onLogout }) => {
                 <button onClick={() => setActiveTab('admin')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold bg-blue-600 text-white shadow-lg shadow-blue-200"><ShieldCheck className="w-5 h-5" /> Admin</button>
              </aside>
              <main className="flex-1">
-                <AdminDashboard user={user} onViewMaster={handleViewAsMaster} />
+                <AdminDashboard onViewMaster={handleViewAsMaster} />
              </main>
           </div>
         </>
@@ -518,11 +517,9 @@ export const Dashboard = ({ user, onLogout }) => {
           onLogout={onLogout} 
           t={t} 
           language={language} 
-          setLanguage={setLanguage} 
           toggleLanguage={toggleLanguage}
           isOwner={isOwner}
           viewingAsMasterName={viewingAsMasterName}
-          exitViewMode={exitViewMode}
         />
       )}
     </div>
