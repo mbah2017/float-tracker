@@ -296,7 +296,24 @@ export const TrainingManualView = ({ user, rootId }) => {
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm]}
                   components={{
-                    h2: Heading2
+                    h1: ({children}) => <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-12">{children}</h1>,
+                    h2: Heading2,
+                    h3: ({children}) => <h3 className={`text-xl font-black uppercase tracking-widest text-${styleSettings.themeColor}-600 mt-12 mb-6`}>{children}</h3>,
+                    p: ({children}) => <p className="text-slate-600 text-lg leading-relaxed mb-6">{children}</p>,
+                    ul: ({children}) => <ul className="list-disc list-outside ml-6 mb-8 space-y-3">{children}</ul>,
+                    li: ({children}) => <li className="text-slate-600 text-lg">{children}</li>,
+                    blockquote: ({children}) => (
+                      <blockquote className={`border-l-4 border-${styleSettings.themeColor}-500 bg-${styleSettings.themeColor}-50/50 p-8 rounded-3xl not-italic text-${styleSettings.themeColor}-900 font-medium my-10`}>
+                        {children}
+                      </blockquote>
+                    ),
+                    table: ({children}) => (
+                      <div className="overflow-x-auto my-10 rounded-3xl border border-slate-100 shadow-sm">
+                        <table className="w-full border-collapse">{children}</table>
+                      </div>
+                    ),
+                    th: ({children}) => <th className="bg-slate-50 p-5 text-left text-slate-900 font-black uppercase text-[10px] tracking-[0.2em]">{children}</th>,
+                    td: ({children}) => <td className="p-5 border-t border-slate-50 text-slate-600 text-sm">{children}</td>
                   }}
                 >
                   {currentContent}
