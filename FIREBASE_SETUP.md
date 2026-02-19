@@ -66,6 +66,15 @@ service firebase.storage {
 | `VITE_FIREBASE_APP_ID` | Your Firebase App ID |
 | `VITE_FIREBASE_MEASUREMENT_ID` | Your Firebase Measurement ID |
 
+cat .env
+VITE_FIREBASE_API_KEY=AIzaSyBXZvD8rqK5KoL4nkUXADJGFw8h0qnLV4s
+VITE_FIREBASE_AUTH_DOMAIN=float-manager-app.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=float-manager-app
+VITE_FIREBASE_STORAGE_BUCKET=float-manager-app.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=501141071545
+VITE_FIREBASE_APP_ID=1:501141071545:web:aebf4a332f4f9ab9b15d68
+VITE_FIREBASE_MEASUREMENT_ID=G-Q784KZ7HGY
+
 4. Click **Deploy**.
 
 ## 3. Global Accessibility
@@ -73,3 +82,17 @@ service firebase.storage {
 Once deployed, your app will be accessible at the Vercel-provided URL (e.g., `https://float-tracker.vercel.app`).
 
 **Important Note:** The application now uses real-time synchronization. Changes made by operators will reflect instantly on the master agent's dashboard across the globe.
+
+
+
+
+## Existing Firebase rule - From Firebase
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
