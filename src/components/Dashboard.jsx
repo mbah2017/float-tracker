@@ -18,11 +18,15 @@ import {
   AlertTriangle,
   MessageCircle,
   BookOpen,
-  Globe as GlobeIcon
+  Globe as GlobeIcon,
+  ShieldCheck,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Button, Badge, Input } from './common';
 import { DashboardView, AgentsView, ReportView, OperatorsView, LiquidityView } from './DashboardViews';
 import { TrainingManualView } from './TrainingManualView';
+import { AdminDashboard } from './AdminDashboard';
 import { useFloatData } from '../hooks/useFloatData';
 import { formatCurrency } from '../utils/formatters';
 import { PROVIDERS } from '../constants';
@@ -30,16 +34,7 @@ import { hashPassword, generateId } from '../utils/crypto';
 import { hasPermission, PERMISSIONS, ROLE_PERMISSIONS } from '../constants/permissions';
 import { useLanguage } from '../context/LanguageContext';
 
-export const Dashboard = ({ user, onLogout }) => {
-  const { language, setLanguage, t } = useLanguage();
-  const isMaster = user.role === 'master' || !user.role;
-  const rootId = isMaster ? user.id : user.masterId;
-
-  const canManageOperators = hasPermission(user, PERMISSIONS.MANAGE_OPERATORS);
-  const canViewLiquidity = hasPermission(user, PERMISSIONS.VIEW_LIQUIDITY) || hasPermission(user, PERMISSIONS.MANAGE_LIQUIDITY);
-  const canResetSystem = hasPermission(user, PERMISSIONS.RESET_SYSTEM);
-  const canViewDashboard = hasPermission(user, PERMISSIONS.VIEW_DASHBOARD);
-
+const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOpen, onLogout, t, language, setLanguage, toggleLanguage, isOwner, viewingAsMasterName, exitViewMode }) => {
   const {
     agents,
     setAgents,
@@ -48,8 +43,6 @@ export const Dashboard = ({ user, onLogout }) => {
     agentBalances,
     reportBalances,
     stats,
-    // eslint-disable-next-line no-unused-vars
-    today,
     reportDate,
     setReportDate,
     addAgent,
@@ -66,8 +59,12 @@ export const Dashboard = ({ user, onLogout }) => {
     createAdjustment
   } = useFloatData(rootId);
 
-  const [activeTab, setActiveTab] = useState(canViewDashboard ? 'dashboard' : 'agents');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isMaster = user.role === 'master' || !user.role;
+  const canManageOperators = hasPermission(user, PERMISSIONS.MANAGE_OPERATORS);
+  const canViewLiquidity = hasPermission(user, PERMISSIONS.VIEW_LIQUIDITY) || hasPermission(user, PERMISSIONS.MANAGE_LIQUIDITY);
+  const canResetSystem = hasPermission(user, PERMISSIONS.RESET_SYSTEM);
+  const canViewDashboard = hasPermission(user, PERMISSIONS.VIEW_DASHBOARD);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('issue');
   const [selectedAgentId, setSelectedAgentId] = useState('');
@@ -87,11 +84,7 @@ export const Dashboard = ({ user, onLogout }) => {
   const [agentPhone, setAgentPhone] = useState('');
 
   // Operator state
-  const [operators, setOperators] = useState(() => {
-    if (!canManageOperators) return [];
-    const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
-    return allUsers.filter(u => u.masterId === rootId);
-  });
+  const [operators, setOperators] = useState([]);
   const [newOpName, setNewOpName] = useState('');
   const [newOpPass, setNewOpPass] = useState('');
   const [selectedPermissions, setSelectedPermissions] = useState(ROLE_PERMISSIONS.operator);
@@ -99,14 +92,15 @@ export const Dashboard = ({ user, onLogout }) => {
 
   const fileInputRef = useRef(null);
 
-  const toggleLanguage = () => {
-    setLanguage(language === 'en' ? 'fr' : 'en');
-  };
+  useEffect(() => {
+    if (canManageOperators || (isOwner && rootId !== user.id)) {
+      const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
+      setOperators(allUsers.filter(u => u.masterId === rootId));
+    }
+  }, [canManageOperators, isOwner, rootId, user.id]);
 
   const handleResetSystem = () => {
     if (!confirm('⚠️ CRITICAL WARNING: This will permanently delete ALL data including agents, transactions, and operator accounts. Are you absolutely sure?')) return;
-    if (!confirm('FINAL CONFIRMATION: Type "DELETE" in the browser console if you want to proceed. Just kidding, click OK to wipe everything.')) return;
-    
     localStorage.clear();
     window.location.reload();
   };
@@ -115,7 +109,6 @@ export const Dashboard = ({ user, onLogout }) => {
     setModalType(type);
     setConfirmed(false);
     setSendWhatsapp(true);
-
     if (type === 'edit_transaction') {
       const tx = todaysTransactions.find(t => t.id === id);
       if (tx) {
@@ -134,12 +127,9 @@ export const Dashboard = ({ user, onLogout }) => {
       setReturnCategory('payment');
       setEditingTransactionId(null);
     }
-    
-    // Reset agent form
     setAgentName('');
     setAgentLocation('');
     setAgentPhone('');
-
     setIsModalOpen(true);
   };
 
@@ -148,27 +138,12 @@ export const Dashboard = ({ user, onLogout }) => {
   const handleTransaction = () => {
     if (!amount || !selectedAgentId || selectedAgentId === '') return;
     const parsedAmount = parseFloat(amount);
-
     if (modalType === 'edit_transaction' && editingTransactionId) {
-      updateTransaction(editingTransactionId, {
-        amount: parsedAmount,
-        method: method,
-        note: note
-      });
+      updateTransaction(editingTransactionId, { amount: parsedAmount, method, note });
       closeModal();
       return;
     }
-
-    const txData = {
-      agentId: String(selectedAgentId),
-      type: modalType,
-      category: modalType === 'return' ? returnCategory : 'issue',
-      amount: parsedAmount,
-      method: method,
-      note,
-      performedBy: user.username
-    };
-
+    const txData = { agentId: String(selectedAgentId), type: modalType, category: modalType === 'return' ? returnCategory : 'issue', amount: parsedAmount, method, note, performedBy: user.username };
     if (sendWhatsapp && modalType !== 'edit_transaction') {
       const agent = agents.find(a => String(a.id) === String(selectedAgentId));
       if (agent && agent.phone) {
@@ -176,47 +151,17 @@ export const Dashboard = ({ user, onLogout }) => {
         let newBalance = currentStats.totalDue;
         if (modalType === 'issue') newBalance += parsedAmount;
         else newBalance -= parsedAmount;
-
         let phone = agent.phone.replace(/\D/g, '');
         if (phone.length === 7) phone = '220' + phone;
-
         const dateStr = new Date().toLocaleDateString();
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const methodLabel = PROVIDERS.find(p => p.id === method)?.label || method;
-
-        let message = '';
-        if (modalType === 'issue') {
-          message = `*FLOAT ISSUANCE CONFIRMATION* 📤
-
-Hello ${agent.name},
-
-You have been issued a float loan of *${formatCurrency(parsedAmount)}* via ${methodLabel}.
-📅 ${dateStr} at ${timeStr}
-
-*Total Due: ${formatCurrency(newBalance)}*
-
-Please confirm receipt. Repayment is due by 6:00 PM today.
-
-Served by: ${user.username}`;
-        } else {
-          const typeLabel = returnCategory === 'checkout' ? 'End-of-Day Checkout' : 'Loan Repayment';
-          message = `*${typeLabel.toUpperCase()} CONFIRMATION* 📥
-
-Hello ${agent.name},
-
-We received *${formatCurrency(parsedAmount)}* via ${methodLabel}.
-📅 ${dateStr} at ${timeStr}
-
-*Remaining Balance: ${formatCurrency(newBalance)}*
-
-${newBalance <= 0.01 ? '✅ All Clear' : '⚠️ Outstanding Balance'}
-
-Served by: ${user.username}`;
-        }
+        let message = modalType === 'issue' 
+          ? `*FLOAT ISSUANCE CONFIRMATION* 📤\n\nHello ${agent.name},\n\nYou have been issued a float loan of *${formatCurrency(parsedAmount)}* via ${methodLabel}.\n📅 ${dateStr} at ${timeStr}\n\n*Total Due: ${formatCurrency(newBalance)}*\n\nPlease confirm receipt. Repayment is due by 6:00 PM today.\n\nServed by: ${user.username}`
+          : `*${(returnCategory === 'checkout' ? 'End-of-Day Checkout' : 'Loan Repayment').toUpperCase()} CONFIRMATION* 📥\n\nHello ${agent.name},\n\nWe received *${formatCurrency(parsedAmount)}* via ${methodLabel}.\n📅 ${dateStr} at ${timeStr}\n\n*Remaining Balance: ${formatCurrency(newBalance)}*\n\n${newBalance <= 0.01 ? '✅ All Clear' : '⚠️ Outstanding Balance'}\n\nServed by: ${user.username}`;
         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
       }
     }
-
     addTransaction(txData);
     closeModal();
   };
@@ -229,76 +174,42 @@ Served by: ${user.username}`;
 
   const handleAddOperator = async () => {
     if (!newOpName || !newOpPass) return;
-    if (!canManageOperators) return;
-
     const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
-
     if (allUsers.find(u => u.username === newOpName)) {
       alert('Username already taken');
       return;
     }
-
     const hashedPass = await hashPassword(newOpPass);
-    const newOp = {
-      id: generateId(),
-      username: newOpName,
-      password: hashedPass,
-      businessName: user.businessName,
-      role: 'operator',
-      masterId: rootId,
-      permissions: selectedPermissions
-    };
-
+    const newOp = { id: generateId(), username: newOpName, password: hashedPass, businessName: viewingAsMasterName || user.businessName, role: 'operator', masterId: rootId, permissions: selectedPermissions };
     const updatedUsers = [...allUsers, newOp];
     localStorage.setItem('float_app_users', JSON.stringify(updatedUsers));
     setOperators(updatedUsers.filter(u => u.masterId === rootId));
-    setNewOpName('');
-    setNewOpPass('');
-    setSelectedPermissions(ROLE_PERMISSIONS.operator);
+    setNewOpName(''); setNewOpPass(''); setSelectedPermissions(ROLE_PERMISSIONS.operator);
     alert('Operator added successfully!');
   };
 
   const handleEditOperator = (op) => {
     setEditingOperatorId(op.id);
     setNewOpName(op.username);
-    setNewOpPass(''); // Don't show old hash
+    setNewOpPass('');
     setSelectedPermissions(op.permissions || ROLE_PERMISSIONS.operator);
-    // Scroll to top of form if needed or just let the UI change
   };
 
   const handleUpdateOperator = async () => {
     if (!editingOperatorId) return;
-
     const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
     const opIndex = allUsers.findIndex(u => u.id === editingOperatorId);
-    
     if (opIndex === -1) return;
-
-    const updatedOp = { ...allUsers[opIndex] };
-    updatedOp.permissions = selectedPermissions;
-    
-    // Update password only if provided
-    if (newOpPass.trim().length >= 6) {
-      updatedOp.password = await hashPassword(newOpPass);
-    } else if (newOpPass.trim().length > 0) {
-      alert('Password must be at least 6 characters');
-      return;
-    }
-
+    const updatedOp = { ...allUsers[opIndex], permissions: selectedPermissions };
+    if (newOpPass.trim().length >= 6) updatedOp.password = await hashPassword(newOpPass);
     allUsers[opIndex] = updatedOp;
     localStorage.setItem('float_app_users', JSON.stringify(allUsers));
     setOperators(allUsers.filter(u => u.masterId === rootId));
-    
-    // Reset form
-    setEditingOperatorId(null);
-    setNewOpName('');
-    setNewOpPass('');
-    setSelectedPermissions(ROLE_PERMISSIONS.operator);
+    setEditingOperatorId(null); setNewOpName(''); setNewOpPass(''); setSelectedPermissions(ROLE_PERMISSIONS.operator);
     alert('Operator updated successfully!');
   };
 
   const handleDeleteOperator = (opId) => {
-    if (!canManageOperators) return;
     if (!confirm('Are you sure you want to remove this operator?')) return;
     const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
     const updatedUsers = allUsers.filter(u => u.id !== opId);
@@ -309,68 +220,28 @@ Served by: ${user.username}`;
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
-    // Validate file type
-    if (!file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv') {
-      alert("Please select a valid CSV file.");
-      event.target.value = '';
-      return;
-    }
-
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const text = e.target.result;
-        // Split by any newline character sequence (\n, \r\n, \r)
         const lines = text.split(/\r?\n|\r/);
         const newAgents = [];
-        
-        if (lines.length === 0) {
-          alert("The file appears to be empty.");
-          return;
-        }
-
-        // Determine if first line is a header
         const startIndex = (lines[0].toLowerCase().includes('name') || lines[0].toLowerCase().includes('location')) ? 1 : 0;
-
         for (let i = startIndex; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line) continue;
-          
-          // Basic CSV parsing (handles simple cases, for complex ones use a library)
-          // This split handles commas, but we could make it smarter
           const parts = line.split(',');
-          if (parts.length >= 1) {
-            const name = parts[0]?.trim();
-            if (name) {
-              newAgents.push({
-                id: generateId(),
-                name: name,
-                location: parts[1]?.trim() || 'General',
-                phone: parts[2]?.trim() || ''
-              });
-            }
+          if (parts.length >= 1 && parts[0]?.trim()) {
+            newAgents.push({ id: generateId(), name: parts[0].trim(), location: parts[1]?.trim() || 'General', phone: parts[2]?.trim() || '' });
           }
         }
-
         if (newAgents.length > 0) {
           setAgents(prev => [...prev, ...newAgents]);
           alert(`Successfully imported ${newAgents.length} agents.`);
-        } else {
-          alert("No valid agents found in the file. Ensure the format matches the template.");
         }
-      } catch (err) {
-        console.error("Import error:", err);
-        alert("An error occurred while reading the file.");
-      }
+      } catch (err) { alert("An error occurred while reading the file."); }
     };
-
-    reader.onerror = () => {
-      alert("Failed to read the file.");
-    };
-
     reader.readAsText(file);
-    // Reset value so same file can be re-selected if needed
     event.target.value = '';
   };
 
@@ -379,152 +250,87 @@ Served by: ${user.username}`;
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "agent_import_template.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    link.setAttribute("href", url); link.setAttribute("download", "agent_import_template.csv");
+    link.style.visibility = 'hidden'; document.body.appendChild(link);
+    link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      <nav className="bg-blue-900 text-white p-4 sticky top-0 z-30 shadow-lg">
+    <>
+      <nav className={`bg-blue-900 text-white p-4 sticky z-30 shadow-lg ${isOwner && rootId !== user.id ? 'top-10' : 'top-0'}`}>
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-blue-700 p-2 rounded-lg"><Banknote className="w-6 h-6 text-blue-200" /></div>
             <div>
-              <h1 className="font-bold text-lg leading-tight">{user.businessName}</h1>
+              <h1 className="font-bold text-lg leading-tight">{isOwner && rootId !== user.id ? viewingAsMasterName : user.businessName}</h1>
               <div className="flex items-center gap-1 text-xs text-blue-300">
-                <User className="w-3 h-3" />
-                {user.role === 'master' ? 'Master Agent' : 'Operator'} ({user.username})
+                <ShieldCheck className="w-3 h-3" />
+                {isOwner ? 'Platform Owner' : (isMaster ? 'Master Agent' : 'Operator')} ({user.username})
               </div>
             </div>
           </div>
           <div className="flex items-center gap-4">
-             <button 
-               onClick={toggleLanguage}
-               className="flex items-center gap-2 text-blue-200 hover:text-white transition-colors text-sm font-bold bg-blue-800/50 px-3 py-1.5 rounded-lg border border-blue-700"
-             >
+             <button onClick={toggleLanguage} className="flex items-center gap-2 text-blue-200 hover:text-white transition-colors text-sm font-bold bg-blue-800/50 px-3 py-1.5 rounded-lg border border-blue-700">
                <GlobeIcon className="w-4 h-4" /> {language.toUpperCase()}
              </button>
              {canResetSystem && (
-               <button 
-                 onClick={handleResetSystem} 
-                 className="hidden md:flex items-center gap-2 text-red-300 hover:text-red-100 transition-colors text-sm font-bold bg-red-900/50 px-3 py-1.5 rounded-lg border border-red-800"
-               >
+               <button onClick={handleResetSystem} className="hidden md:flex items-center gap-2 text-red-300 hover:text-red-100 transition-colors text-sm font-bold bg-red-900/50 px-3 py-1.5 rounded-lg border border-red-800">
                  <AlertTriangle className="w-4 h-4" /> {t('reset_system')}
                </button>
              )}
              <button onClick={onLogout} className="hidden md:flex items-center gap-2 text-blue-200 hover:text-white transition-colors text-sm font-medium">
                <LogOut className="w-4 h-4" /> {t('logout')}
              </button>
-             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden p-2 hover:bg-blue-800 rounded"><Menu className="w-6 h-6" /></button>
+             <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 hover:bg-blue-800 rounded"><Menu className="w-6 h-6" /></button>
           </div>
         </div>
       </nav>
 
       <div className="max-w-7xl mx-auto p-4 md:flex md:gap-6 lg:gap-8 mt-4">
-        <aside className={`fixed inset-y-0 left-0 bg-white w-72 shadow-2xl transform transition-transform duration-300 ease-in-out z-40 md:sticky md:top-24 md:transform-none md:shadow-none md:bg-transparent md:w-56 lg:w-64 h-fit self-start ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <div className="p-4 md:hidden flex justify-between items-center border-b border-slate-100 mb-2">
-            <span className="font-bold text-blue-900">Menu</span>
-            <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X className="w-6 h-6 text-slate-400" /></button>
-          </div>
-          <div className="space-y-1.5 p-2 md:p-0">
+        <aside className="hidden md:block sticky top-24 w-56 lg:w-64 h-fit self-start">
+          <div className="space-y-1.5">
             {[
-              ...(canViewDashboard ? [{ id: 'dashboard', label: t('dashboard'), icon: Wallet }] : []),
+              ...(isOwner ? [{ id: 'admin', label: 'Admin', icon: ShieldCheck }] : []),
+              ...((canViewDashboard || rootId !== user.id) ? [{ id: 'dashboard', label: t('dashboard'), icon: Wallet }] : []),
               { id: 'reports', label: t('reports'), icon: History },
-              ...(canViewLiquidity ? [{ id: 'liquidity', label: t('liquidity'), icon: Banknote }] : []),
+              ...((canViewLiquidity || rootId !== user.id) ? [{ id: 'liquidity', label: t('liquidity'), icon: Banknote }] : []),
               { id: 'agents', label: t('manage_agents'), icon: Users },
-              ...(canManageOperators ? [{ id: 'operators', label: t('operators'), icon: UserCog }] : []),
+              ...((canManageOperators || rootId !== user.id) ? [{ id: 'operators', label: t('operators'), icon: UserCog }] : []),
               { id: 'training', label: t('training_manual'), icon: BookOpen },
             ].map(item => (
-              <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3.5 md:py-3 rounded-xl font-semibold transition-all ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm'}`}>
+              <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm'}`}>
                 <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-white' : 'text-slate-400 group-hover:text-blue-600'}`} /> {item.label}
               </button>
             ))}
           </div>
-          <div className="mt-6 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 mx-2 md:mx-0 shadow-sm">
-            <h4 className="font-bold text-blue-900 text-sm mb-1">{t('quick_action')}</h4>
-            <p className="text-xs text-blue-700/70 mb-4 leading-relaxed">Instantly issue new float to any active sub-agent.</p>
-            <Button variant="primary" className="w-full text-sm py-2.5 shadow-sm" onClick={() => { setSidebarOpen(false); openModal('issue'); }}>{t('issue_float')}</Button>
-          </div>
-          <div className="mt-8 md:hidden px-2 space-y-2">
-             {canResetSystem && (
-               <button 
-                 onClick={() => { setSidebarOpen(false); handleResetSystem(); }} 
-                 className="flex items-center justify-center gap-2 text-red-600 font-bold w-full p-3 bg-red-50 hover:bg-red-100 transition-colors rounded-xl border border-red-100"
-               >
-                 <AlertTriangle className="w-5 h-5" /> {t('reset_system')}
-               </button>
-             )}
-             <button onClick={onLogout} className="flex items-center justify-center gap-2 text-red-600 font-bold w-full p-3 bg-red-50 hover:bg-red-100 transition-colors rounded-xl border border-red-100">
-               <LogOut className="w-5 h-5" /> {t('logout')}
-             </button>
-          </div>
+          {(isMaster || rootId !== user.id) && (
+            <div className="mt-6 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 shadow-sm">
+              <h4 className="font-bold text-blue-900 text-sm mb-1">{t('quick_action')}</h4>
+              <p className="text-xs text-blue-700/70 mb-4 leading-relaxed">Instantly issue new float to any active sub-agent.</p>
+              <Button variant="primary" className="w-full text-sm py-2.5 shadow-sm" onClick={() => openModal('issue')}>{t('issue_float')}</Button>
+            </div>
+          )}
         </aside>
 
         <main className="flex-1 min-w-0">
-          {activeTab === 'dashboard' && canViewDashboard && <DashboardView stats={stats} formatCurrency={formatCurrency} activeBalance={activeBalance} openingBalance={currentLiquidity.openingBalance} user={user} />}
+          {activeTab === 'admin' && isOwner && <AdminDashboard user={user} />}
+          {activeTab === 'dashboard' && (canViewDashboard || rootId !== user.id) && <DashboardView stats={stats} formatCurrency={formatCurrency} activeBalance={activeBalance} openingBalance={currentLiquidity.openingBalance} user={user} />}
           {activeTab === 'reports' && (
-                        <ReportView
-                          agents={agents}
-                          agentBalances={reportBalances}
-                          todaysTransactions={reportTransactions}
-                          formatCurrency={formatCurrency}
-                          today={reportDate}
-                          setReportDate={setReportDate}
-                          PROVIDERS={PROVIDERS}
-                          settings={settings}
-                          setSettings={setSettings}
-                          currentLiquidity={currentLiquidity}
-                          stats={stats}
-                          activeBalance={activeBalance}
-                          openModal={openModal}
-                          deleteTransaction={deleteTransaction}
-                          user={user}
-                        />          )}
-          {activeTab === 'liquidity' && (
-            <LiquidityView 
-                                          currentLiquidity={currentLiquidity}
-                                          updateLiquidity={updateLiquidity}
-                                          activeBalance={activeBalance}
-                                          stats={stats}
-                                          formatCurrency={formatCurrency}
-                                          closeDay={closeDay}
-                                          isMaster={isMaster}
-                                                        isPassiveUnlockOverride={currentLiquidity.isPassiveUnlockOverride}
-                                                        togglePassiveUnlockOverride={togglePassiveUnlockOverride}
-                                                        createAdjustment={createAdjustment}
-                                                        user={user}
-                                                      />          )}
+            <ReportView agents={agents} agentBalances={reportBalances} todaysTransactions={reportTransactions} formatCurrency={formatCurrency} today={reportDate} setReportDate={setReportDate} PROVIDERS={PROVIDERS} settings={settings} setSettings={setSettings} currentLiquidity={currentLiquidity} stats={stats} activeBalance={activeBalance} openModal={openModal} deleteTransaction={deleteTransaction} user={user} />
+          )}
+          {activeTab === 'liquidity' && (canViewLiquidity || rootId !== user.id) && (
+            <LiquidityView currentLiquidity={currentLiquidity} updateLiquidity={updateLiquidity} activeBalance={activeBalance} stats={stats} formatCurrency={formatCurrency} closeDay={closeDay} isMaster={isMaster || (isOwner && rootId !== user.id)} isPassiveUnlockOverride={currentLiquidity.isPassiveUnlockOverride} togglePassiveUnlockOverride={togglePassiveUnlockOverride} createAdjustment={createAdjustment} user={user} />
+          )}
           {activeTab === 'agents' && <AgentsView agents={agents} agentBalances={agentBalances} openModal={openModal} fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} downloadTemplate={downloadTemplate} formatCurrency={formatCurrency} />}
-          {activeTab === 'operators' && canManageOperators && (
-            <OperatorsView
-              newOpName={newOpName}
-              setNewOpName={setNewOpName}
-              newOpPass={newOpPass}
-              setNewOpPass={setNewOpPass}
-              handleAddOperator={handleAddOperator}
-              handleUpdateOperator={handleUpdateOperator}
-              operators={operators}
-              handleDeleteOperator={handleDeleteOperator}
-              handleEditOperator={handleEditOperator}
-              selectedPermissions={selectedPermissions}
-              setSelectedPermissions={setSelectedPermissions}
-              PERMISSIONS={PERMISSIONS}
-              editingOperatorId={editingOperatorId}
-              setEditingOperatorId={setEditingOperatorId}
-              user={user}
-            />
+          {activeTab === 'operators' && (canManageOperators || rootId !== user.id) && (
+            <OperatorsView newOpName={newOpName} setNewOpName={setNewOpName} newOpPass={newOpPass} setNewOpPass={setNewOpPass} handleAddOperator={handleAddOperator} handleUpdateOperator={handleUpdateOperator} operators={operators} handleDeleteOperator={handleDeleteOperator} handleEditOperator={handleEditOperator} selectedPermissions={selectedPermissions} setSelectedPermissions={setSelectedPermissions} PERMISSIONS={PERMISSIONS} editingOperatorId={editingOperatorId} setEditingOperatorId={setEditingOperatorId} user={user} />
           )}
           {activeTab === 'training' && <TrainingManualView user={user} rootId={rootId} />}
         </main>
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
               <h3 className="text-xl font-bold text-slate-800">
@@ -543,16 +349,11 @@ Served by: ${user.username}`;
                 <>
                   <div className="mb-4">
                     <label className="block text-sm font-semibold mb-1">{t('select_agent')}</label>
-                    <select 
-                      className="w-full p-3 border rounded-lg bg-white" 
-                      value={selectedAgentId} 
-                      onChange={e => setSelectedAgentId(e.target.value)}
-                    >
+                    <select className="w-full p-3 border rounded-lg bg-white" value={selectedAgentId} onChange={e => setSelectedAgentId(e.target.value)}>
                       <option value="">{t('select_agent')}...</option>
                       {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                     </select>
                   </div>
-
                   {selectedAgentId && (
                     <div className="bg-slate-50 p-4 rounded-lg mb-4 space-y-2 border border-slate-100">
                       <div className="flex justify-between items-center">
@@ -566,7 +367,6 @@ Served by: ${user.username}`;
                       </div>
                     </div>
                   )}
-
                   {modalType === 'return' && (
                       <div className="mb-4">
                           <label className="block text-sm font-semibold text-slate-700 mb-2">{t('transaction_type')}</label>
@@ -576,13 +376,11 @@ Served by: ${user.username}`;
                           </div>
                       </div>
                   )}
-
                   <div className="mb-4">
                     <label className="block text-sm font-semibold text-slate-700 mb-2">{modalType === 'issue' ? t('source_of_funds') : t('repayment_via')}</label>
                     <div className="grid grid-cols-2 gap-2">
                       {PROVIDERS.map(p => {
-                         const Icon = p.icon;
-                         const isSelected = method === p.id;
+                         const Icon = p.icon; const isSelected = method === p.id;
                          return (
                           <button key={p.id} onClick={() => setMethod(p.id)} className={`flex items-center gap-2 p-3 rounded-lg border text-sm font-medium transition-all text-left ${isSelected ? `ring-2 ring-offset-1 ring-blue-500 ${p.colorClass}` : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                             <Icon className="w-4 h-4 shrink-0" /><span className="truncate">{p.label}</span>
@@ -591,32 +389,13 @@ Served by: ${user.username}`;
                       })}
                     </div>
                   </div>
-
                   <Input label={t('amount_gmd')} type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
-
-                  {modalType !== 'issue' && selectedAgentId && amount && (
-                     <div className={`p-3 rounded text-sm mb-4 flex items-start gap-2 ${parseFloat(amount) < (agentBalances[selectedAgentId]?.totalDue || 0) ? 'bg-amber-50 text-amber-800' : 'bg-green-50 text-green-700'}`}>
-                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                        <div><span className="font-bold">{parseFloat(amount) < (agentBalances[selectedAgentId]?.totalDue || 0) ? t('owing') + ':' : t('cleared') + ':'}</span><p>{parseFloat(amount) < (agentBalances[selectedAgentId]?.totalDue || 0) ? `${t('total_due')}: ${formatCurrency(agentBalances[selectedAgentId].totalDue - amount)}` : t('cleared')}</p></div>
-                     </div>
-                  )}
-
                   <Input label={t('notes_optional')} value={note} onChange={e => setNote(e.target.value)} placeholder={modalType === 'issue' ? "e.g. Morning Float" : "e.g. Closing Balance"} />
-
                   <div className="flex items-center justify-between p-3 bg-green-50 border border-green-100 rounded-lg mb-2">
                       <div className="flex items-center gap-2 text-green-800"><MessageCircle className="w-4 h-4" /><span className="text-sm font-medium">{t('send_whatsapp')}</span></div>
                       <div className={`w-10 h-6 rounded-full p-1 cursor-pointer transition-colors ${sendWhatsapp ? 'bg-green-500' : 'bg-slate-300'}`} onClick={() => setSendWhatsapp(!sendWhatsapp)}><div className={`w-4 h-4 bg-white rounded-full transition-transform ${sendWhatsapp ? 'translate-x-4' : 'translate-x-0'}`} /></div>
                   </div>
-
-                  {modalType === 'issue' && amount > 0 && selectedAgentId && (
-                    <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
-                      <div className="flex items-center gap-2 mb-2 font-bold text-slate-800"><Scale className="w-4 h-4" /> {t('legal_agreement')}</div>
-                      <p className="mb-2 italic">"I, <strong>{agents.find(a => String(a.id) === String(selectedAgentId))?.name}</strong>, acknowledge receipt of <strong>{formatCurrency(amount)}</strong> on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()} as a float loan from the Master Agent."</p>
-                      <p className="font-semibold text-slate-800">"I agree to repay this full amount to the Master Agent by the end of today, before closing at 6:00 PM."</p>
-                    </div>
-                  )}
-
-                  <div className={`flex items-start gap-3 mt-4 p-3 border rounded-lg text-sm transition-colors hover:bg-opacity-50 cursor-pointer ${modalType === 'issue' ? 'bg-blue-50 border-blue-100 text-blue-800' : 'bg-purple-50 border-purple-100 text-purple-800'}`} onClick={() => setConfirmed(!confirmed)}>
+                  <div className={`flex items-start gap-3 mt-4 p-3 border rounded-lg text-sm cursor-pointer ${confirmed ? (modalType === 'issue' ? 'bg-blue-50 border-blue-100 text-blue-800' : 'bg-purple-50 border-purple-100 text-purple-800') : 'bg-slate-50 border-slate-200 text-slate-600'}`} onClick={() => setConfirmed(!confirmed)}>
                       <div className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center shrink-0 ${confirmed ? (modalType === 'issue' ? 'bg-blue-600 border-blue-600' : 'bg-purple-600 border-purple-600') + ' text-white' : 'bg-white border-slate-300'}`}>{confirmed && <CheckCircle2 className="w-3.5 h-3.5" />}</div>
                       <label className="font-medium select-none cursor-pointer">{modalType === 'issue' ? t('confirm_terms') : (returnCategory === 'checkout' ? t('confirm_verified') : t('confirm_receipt'))}</label>
                   </div>
@@ -625,16 +404,126 @@ Served by: ${user.username}`;
             </div>
             <div className="p-6 border-t border-slate-100 bg-slate-50 rounded-b-2xl flex justify-end gap-3 sticky bottom-0 z-10">
               <Button variant="secondary" onClick={closeModal}>{t('cancel')}</Button>
-              <Button 
-                variant={modalType === 'issue' || modalType === 'add_agent' ? 'primary' : 'success'} 
-                onClick={modalType === 'add_agent' ? handleAddAgent : handleTransaction} 
-                disabled={modalType === 'add_agent' ? !agentName : (!amount || !confirmed || !selectedAgentId)}
-              >
-                {modalType === 'add_agent' ? t('save_agent') : modalType === 'issue' ? t('confirm_issue') : t('confirm_return')}
-              </Button>
+              <Button variant={modalType === 'issue' || modalType === 'add_agent' ? 'primary' : 'success'} onClick={modalType === 'add_agent' ? handleAddAgent : handleTransaction} disabled={modalType === 'add_agent' ? !agentName : (!amount || !confirmed || !selectedAgentId)}>{modalType === 'add_agent' ? t('save_agent') : modalType === 'issue' ? t('confirm_issue') : t('confirm_return')}</Button>
             </div>
           </div>
         </div>
+      )}
+    </>
+  );
+};
+
+export const Dashboard = ({ user, onLogout }) => {
+  const { language, setLanguage, t } = useLanguage();
+  const [viewingAsMasterId, setViewingAsMasterId] = useState(null);
+  const [viewingAsMasterName, setViewingAsMasterName] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const isOwner = user.role === 'owner';
+  const isMaster = user.role === 'master' || !user.role;
+  const rootId = isOwner && viewingAsMasterId ? viewingAsMasterId : (isMaster ? user.id : user.masterId);
+  const canViewAdmin = hasPermission(user, PERMISSIONS.VIEW_ADMIN_DASHBOARD);
+
+  const [activeTab, setActiveTab] = useState(canViewAdmin ? 'admin' : 'dashboard');
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'fr' : 'en');
+  };
+
+  const handleViewAsMaster = (masterId, masterName) => {
+    setViewingAsMasterId(masterId);
+    setViewingAsMasterName(masterName);
+    setActiveTab('dashboard');
+  };
+
+  const exitViewMode = () => {
+    setViewingAsMasterId(null);
+    setViewingAsMasterName('');
+    setActiveTab('admin');
+  };
+
+  // Sync sidebar items for mobile
+  const sidebarItems = [
+    ...(isOwner ? [{ id: 'admin', label: 'Admin', icon: ShieldCheck }] : []),
+    ...((rootId !== user.id || isMaster) ? [{ id: 'dashboard', label: t('dashboard'), icon: Wallet }] : []),
+    { id: 'reports', label: t('reports'), icon: History },
+    ...((rootId !== user.id || isMaster) ? [{ id: 'liquidity', label: t('liquidity'), icon: Banknote }] : []),
+    { id: 'agents', label: t('manage_agents'), icon: Users },
+    ...((rootId !== user.id || isMaster) ? [{ id: 'operators', label: t('operators'), icon: UserCog }] : []),
+    { id: 'training', label: t('training_manual'), icon: BookOpen },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+      {/* Mobile Sidebar */}
+      <div className={`fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 transition-opacity md:hidden ${sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setSidebarOpen(false)}>
+        <aside className={`absolute left-0 top-0 bottom-0 bg-white w-72 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`} onClick={e => e.stopPropagation()}>
+          <div className="p-4 flex justify-between items-center border-b">
+            <span className="font-bold text-blue-900">Menu</span>
+            <button onClick={() => setSidebarOpen(false)} className="p-2"><X className="w-6 h-6" /></button>
+          </div>
+          <div className="p-4 space-y-2">
+            {sidebarItems.map(item => (
+              <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg font-semibold ${activeTab === item.id ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>
+                <item.icon className="w-5 h-5" /> {item.label}
+              </button>
+            ))}
+          </div>
+        </aside>
+      </div>
+
+      {isOwner && viewingAsMasterId && (
+        <div className="bg-amber-500 text-white px-4 py-2 flex items-center justify-between sticky top-0 z-[60] shadow-md">
+          <div className="flex items-center gap-2 font-bold text-sm">
+            <Eye className="w-4 h-4" />
+            VIEW MODE: Viewing {viewingAsMasterName}'s Account
+          </div>
+          <button onClick={exitViewMode} className="bg-white text-amber-600 px-3 py-1 rounded-lg text-xs font-black shadow-sm">EXIT VIEW MODE</button>
+        </div>
+      )}
+
+      {/* Admin Panel (Global for Owner) */}
+      {activeTab === 'admin' && isOwner && !viewingAsMasterId ? (
+        <>
+          <nav className="bg-blue-900 text-white p-4 sticky top-0 z-30 shadow-lg">
+            <div className="max-w-5xl mx-auto flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="w-8 h-8 text-blue-200" />
+                <h1 className="font-bold text-lg">Platform Administration</h1>
+              </div>
+              <div className="flex items-center gap-4">
+                 <button onClick={onLogout} className="flex items-center gap-2 text-blue-200 hover:text-white transition-colors text-sm font-medium"><LogOut className="w-4 h-4" /> {t('logout')}</button>
+                 <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2"><Menu className="w-6 h-6" /></button>
+              </div>
+            </div>
+          </nav>
+          <div className="max-w-7xl mx-auto p-4 md:flex md:gap-8 mt-4">
+             <aside className="hidden md:block w-64 shrink-0">
+                <button onClick={() => setActiveTab('admin')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold bg-blue-600 text-white shadow-lg shadow-blue-200"><ShieldCheck className="w-5 h-5" /> Admin</button>
+             </aside>
+             <main className="flex-1">
+                <AdminDashboard user={user} onViewMaster={handleViewAsMaster} />
+             </main>
+          </div>
+        </>
+      ) : (
+        /* Re-keyed sub-component forces a fresh state when rootId changes */
+        <BusinessDashboard 
+          key={rootId}
+          user={user} 
+          rootId={rootId} 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+          setSidebarOpen={setSidebarOpen} 
+          onLogout={onLogout} 
+          t={t} 
+          language={language} 
+          setLanguage={setLanguage} 
+          toggleLanguage={toggleLanguage}
+          isOwner={isOwner}
+          viewingAsMasterName={viewingAsMasterName}
+          exitViewMode={exitViewMode}
+        />
       )}
     </div>
   );

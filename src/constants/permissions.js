@@ -16,10 +16,16 @@ export const PERMISSIONS = {
   VIEW_REPAID_TODAY: 'view_repaid_today',
   VIEW_TEAM_DEBT: 'view_team_debt',
   VIEW_TOTAL_LIQUIDITY: 'view_total_liquidity',
+  VIEW_ADMIN_DASHBOARD: 'view_admin_dashboard',
+  MANAGE_MASTERS: 'manage_masters',
 };
 
 export const ROLE_PERMISSIONS = {
-  master: Object.values(PERMISSIONS),
+  owner: Object.values(PERMISSIONS),
+  master: Object.values(PERMISSIONS).filter(p => 
+    p !== PERMISSIONS.VIEW_ADMIN_DASHBOARD && 
+    p !== PERMISSIONS.MANAGE_MASTERS
+  ),
   operator: [
     PERMISSIONS.VIEW_DASHBOARD,
     PERMISSIONS.VIEW_LIQUIDITY,
