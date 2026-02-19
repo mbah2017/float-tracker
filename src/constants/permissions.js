@@ -8,6 +8,7 @@ export const PERMISSIONS = {
   MANAGE_LIQUIDITY: 'manage_liquidity',
   CLOSE_DAY: 'close_day',
   ADMIN_UNLOCK: 'admin_unlock',
+  DELETE_TRANSACTION: 'delete_transaction',
 };
 
 export const ROLE_PERMISSIONS = {
