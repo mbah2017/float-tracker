@@ -206,7 +206,13 @@ export const AgentsView = ({ agents, agentBalances, openModal, fileInputRef, han
      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
       <h2 className="text-2xl font-bold text-slate-800">My Agents</h2>
       <div className="flex flex-wrap gap-2">
-          <input type="file" accept=".csv" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+          <input 
+            type="file" 
+            accept=".csv,text/csv" 
+            ref={fileInputRef} 
+            className="opacity-0 absolute pointer-events-none w-0 h-0" 
+            onChange={handleFileUpload} 
+          />
           <Button variant="secondary" onClick={downloadTemplate} icon={FileSpreadsheet} className="text-xs py-2 px-3">Template</Button>
           <Button variant="outline" onClick={() => fileInputRef.current.click()} icon={Upload} className="text-xs py-2 px-3">Import</Button>
           <Button onClick={() => openModal('add_agent')} icon={Plus} className="text-xs py-2 px-3">Add Agent</Button>

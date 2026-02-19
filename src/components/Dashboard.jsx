@@ -302,48 +302,82 @@ Served by: ${user.username}`;
     const file = event.target.files[0];
     if (!file) return;
 
+    // Validate file type
+    if (!file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv') {
+      alert("Please select a valid CSV file.");
+      event.target.value = '';
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
-      const text = e.target.result;
-      const lines = text.split('\n');
-      const newAgents = [];
-      const startIndex = lines[0].toLowerCase().includes('name') ? 1 : 0;
+      try {
+        const text = e.target.result;
+        // Split by any newline character sequence (\n, \r\n, \r)
+        const lines = text.split(/\r?\n|\r/);
+        const newAgents = [];
+        
+        if (lines.length === 0) {
+          alert("The file appears to be empty.");
+          return;
+        }
 
-      for (let i = startIndex; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        const parts = line.split(',');
-        if (parts.length >= 1) {
-          const name = parts[0]?.trim();
-          if (name) {
-            newAgents.push({
-              id: generateId(),
-              name: name,
-              location: parts[1]?.trim() || 'General',
-              phone: parts[2]?.trim() || ''
-            });
+        // Determine if first line is a header
+        const startIndex = (lines[0].toLowerCase().includes('name') || lines[0].toLowerCase().includes('location')) ? 1 : 0;
+
+        for (let i = startIndex; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          
+          // Basic CSV parsing (handles simple cases, for complex ones use a library)
+          // This split handles commas, but we could make it smarter
+          const parts = line.split(',');
+          if (parts.length >= 1) {
+            const name = parts[0]?.trim();
+            if (name) {
+              newAgents.push({
+                id: generateId(),
+                name: name,
+                location: parts[1]?.trim() || 'General',
+                phone: parts[2]?.trim() || ''
+              });
+            }
           }
         }
-      }
-      if (newAgents.length > 0) {
-        setAgents(prev => [...prev, ...newAgents]);
-        alert(`Successfully imported ${newAgents.length} agents.`);
-      } else {
-        alert("No valid agents found in file.");
+
+        if (newAgents.length > 0) {
+          setAgents(prev => [...prev, ...newAgents]);
+          alert(`Successfully imported ${newAgents.length} agents.`);
+        } else {
+          alert("No valid agents found in the file. Ensure the format matches the template.");
+        }
+      } catch (err) {
+        console.error("Import error:", err);
+        alert("An error occurred while reading the file.");
       }
     };
+
+    reader.onerror = () => {
+      alert("Failed to read the file.");
+    };
+
     reader.readAsText(file);
+    // Reset value so same file can be re-selected if needed
     event.target.value = '';
   };
 
   const downloadTemplate = () => {
-    const csvContent = "data:text/csv;charset=utf-8,Full Name,Location,Phone Number\nModou Lamin,Serrekunda Market,3344556\nFatou Jallow,Bakau,7766554";
+    const csvContent = "Full Name,Location,Phone Number\nModou Lamin,Serrekunda Market,3344556\nFatou Jallow,Bakau,7766554";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("href", url);
     link.setAttribute("download", "agent_import_template.csv");
+    link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
