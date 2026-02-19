@@ -657,7 +657,8 @@ export const OperatorsView = ({
   setSelectedPermissions,
   PERMISSIONS,
   editingOperatorId,
-  setEditingOperatorId
+  setEditingOperatorId,
+  user
 }) => {
   const togglePermission = (perm) => {
     setSelectedPermissions(prev => 
@@ -717,7 +718,6 @@ export const OperatorsView = ({
               <label className="text-xs font-black uppercase tracking-widest text-slate-400">Permissions</label>
               <div className="grid grid-cols-1 gap-2">
                 {Object.entries(PERMISSIONS).map(([key, value]) => {
-                  if (value === 'manage_operators') return null; // Only Master has this
                   return (
                     <label key={key} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors border border-slate-100">
                       <input 
@@ -757,37 +757,47 @@ export const OperatorsView = ({
             </div>
           ) : (
             <div className="space-y-3">
-              {operators.map(op => (
-                <div key={op.id} className={`flex justify-between items-center p-4 bg-white border rounded-2xl shadow-sm hover:shadow-md transition-all ${editingOperatorId === op.id ? 'border-amber-200 ring-2 ring-amber-50 ring-offset-0' : 'border-slate-100'}`}>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center font-black text-sm">
-                      {op.username.charAt(0).toUpperCase()}
+              {operators.map(op => {
+                const isSelf = op.id === user.id;
+                return (
+                  <div key={op.id} className={`flex justify-between items-center p-4 bg-white border rounded-2xl shadow-sm hover:shadow-md transition-all ${editingOperatorId === op.id ? 'border-amber-200 ring-2 ring-amber-50 ring-offset-0' : 'border-slate-100'}`}>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center font-black text-sm">
+                        {op.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-sm text-slate-800 uppercase tracking-tight">{op.username}</p>
+                          {isSelf && <Badge color="blue">You</Badge>}
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                          {op.permissions?.length || 0} permissions assigned
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-sm text-slate-800 uppercase tracking-tight">{op.username}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                        {op.permissions?.length || 0} permissions assigned
-                      </p>
+                    <div className="flex gap-1">
+                      {!isSelf && (
+                        <>
+                          <button 
+                            onClick={() => handleEditOperator(op)} 
+                            className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                            title="Edit Permissions"
+                          >
+                            <Edit2 className="w-5 h-5" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteOperator(op.id)} 
+                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                            title="Delete Operator"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <button 
-                      onClick={() => handleEditOperator(op)} 
-                      className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
-                      title="Edit Permissions"
-                    >
-                      <Edit2 className="w-5 h-5" />
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteOperator(op.id)} 
-                      className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                      title="Delete Operator"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Card>

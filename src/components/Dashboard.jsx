@@ -85,7 +85,7 @@ export const Dashboard = ({ user, onLogout }) => {
   const [operators, setOperators] = useState(() => {
     if (!canManageOperators) return [];
     const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
-    return allUsers.filter(u => u.masterId === user.id);
+    return allUsers.filter(u => u.masterId === rootId);
   });
   const [newOpName, setNewOpName] = useState('');
   const [newOpPass, setNewOpPass] = useState('');
@@ -228,13 +228,13 @@ Served by: ${user.username}`;
       password: hashedPass,
       businessName: user.businessName,
       role: 'operator',
-      masterId: user.id,
+      masterId: rootId,
       permissions: selectedPermissions
     };
 
     const updatedUsers = [...allUsers, newOp];
     localStorage.setItem('float_app_users', JSON.stringify(updatedUsers));
-    setOperators(updatedUsers.filter(u => u.masterId === user.id));
+    setOperators(updatedUsers.filter(u => u.masterId === rootId));
     setNewOpName('');
     setNewOpPass('');
     setSelectedPermissions(ROLE_PERMISSIONS.operator);
@@ -270,7 +270,7 @@ Served by: ${user.username}`;
 
     allUsers[opIndex] = updatedOp;
     localStorage.setItem('float_app_users', JSON.stringify(allUsers));
-    setOperators(allUsers.filter(u => u.masterId === user.id));
+    setOperators(allUsers.filter(u => u.masterId === rootId));
     
     // Reset form
     setEditingOperatorId(null);
@@ -286,7 +286,7 @@ Served by: ${user.username}`;
     const allUsers = JSON.parse(localStorage.getItem('float_app_users') || '[]');
     const updatedUsers = allUsers.filter(u => u.id !== opId);
     localStorage.setItem('float_app_users', JSON.stringify(updatedUsers));
-    setOperators(updatedUsers.filter(u => u.masterId === user.id));
+    setOperators(updatedUsers.filter(u => u.masterId === rootId));
   };
 
   const handleFileUpload = (event) => {
@@ -442,6 +442,7 @@ Served by: ${user.username}`;
               PERMISSIONS={PERMISSIONS}
               editingOperatorId={editingOperatorId}
               setEditingOperatorId={setEditingOperatorId}
+              user={user}
             />
           )}
           {activeTab === 'training' && <TrainingManualView />}
