@@ -4,9 +4,16 @@ Welcome to the **Float Tracker** platform. This comprehensive guide is designed 
 
 ---
 
-## Master Agent Guide
+# Master Agent Guide
 
-### 1. 🚀 Onboarding and Initial Setup
+### 📑 In this section
+- [1. Onboarding & Setup](#1-onboarding-and-initial-setup)
+- [2. Managing Sub-Agents](#2-managing-sub-agents)
+- [3. Team Management & Permissions](#3-team-management--granular-permissions)
+- [4. Liquidity & Reconciliation](#4-liquidity-management--channel-reconciliation)
+- [5. Reporting and Reconciliation](#5-reporting-and-reconciliation)
+
+## 1. 🚀 Onboarding and Initial Setup
 The Master Agent is the business owner. Upon your first login, your account is granted full administrative privileges.
 
 *   **Business Profile:** Your "Business Name" is the primary identity for your operation. It will appear on all sub-agent confirmations and reports.
@@ -14,7 +21,7 @@ The Master Agent is the business owner. Upon your first login, your account is g
 
 > **Tip:** Keep your Master Agent credentials secure. Use the **Operators** tab to create separate accounts for your staff.
 
-### 2. 👥 Managing Sub-Agents
+## 2. 👥 Managing Sub-Agents
 Your agent network is managed via the **"Manage Agents"** tab.
 
 #### Onboarding
@@ -26,7 +33,7 @@ Your agent network is managed via the **"Manage Agents"** tab.
     *   🔴 **Red Balance:** Indicates outstanding debt.
     *   🟢 **Green Balance:** Indicates a cleared account.
 
-### 3. 🛠️ Team Management & Granular Permissions
+## 3. 🛠️ Team Management & Granular Permissions
 Delegate daily tasks to your staff using the **"Operators"** tab. The system uses a granular permission model to ensure staff only access what they need.
 
 #### Managing Staff Accounts
@@ -44,7 +51,7 @@ Delegate daily tasks to your staff using the **"Operators"** tab. The system use
 | `DELETE_TRANSACTION`| Required to remove records from history (Master only by default). |
 | `VIEW_REPORTS` | Access to the daily audit trail and WhatsApp report generation. |
 
-### 4. 💰 Liquidity Management & Reconciliation
+## 4. 💰 Liquidity Management & Reconciliation
 This is the heart of the system, found under the **"Liquidity"** tab.
 
 #### Understanding Core Metrics
@@ -57,7 +64,7 @@ This is the heart of the system, found under the **"Liquidity"** tab.
 3.  **Bookkeeping Adjustments:** Use the `Adj` button to automatically create a system log that aligns your records with physical reality.
 4.  **Finalize Closing:** If an "Overall Discrepancy" remains, provide an explanation and click `Finalize & Close Day`. This carries over your *Actual* balances as tomorrow's *Opening* balances.
 
-### 5. 📊 Reporting and Reconciliation
+## 5. 📊 Reporting and Reconciliation
 The **"Reports"** tab provides full transparency into your history.
 
 *   **Date Selection:** View any past day's performance by selecting a date.
@@ -66,12 +73,18 @@ The **"Reports"** tab provides full transparency into your history.
 
 ---
 
-## Operator Guide
+# Operator Guide
 
-### 1. 👋 Getting Started
+### 📑 In this section
+- [1. Getting Started](#1-getting-started)
+- [2. Daily Operations](#2-daily-operations-issuing-and-returning-float)
+- [3. Agent Verification](#3-viewing-agent-information)
+- [4. End-of-Day Procedures](#4-end-of-day-procedures)
+
+## 1. 👋 Getting Started
 Log in with credentials provided by your manager. Your sidebar will only show the tabs you have been granted permission to use.
 
-### 2. 📑 Daily Operations: Issuing and Returning Float
+## 2. 📑 Daily Operations: Issuing and Returning Float
 
 #### Issuing Float (Outbound)
 1.  Click `Issue Float` in the Quick Actions menu.
@@ -87,10 +100,10 @@ Log in with credentials provided by your manager. Your sidebar will only show th
     *   **Return Float:** For full end-of-day checkout.
 3.  Enter amount and confirm. The system will alert you if the agent's debt is cleared.
 
-### 3. 🔍 Viewing Agent Information
+## 3. 🔍 Viewing Agent Information
 Use the **"Manage Agents"** tab to verify an agent's creditworthiness. You can see their "Prev. Debt" from yesterday and "Issued Today" to ensure they stay within safe limits.
 
-### 4. 🏁 End-of-Day Procedures
+## 4. 🏁 End-of-Day Procedures
 Before your shift ends:
 *   Ensure every physical transaction is recorded.
 *   Review the **"Reports"** tab for accuracy.

@@ -10,8 +10,8 @@ export const TrainingManualView = () => {
 
   // Split content into Master and Operator sections manually for better UI control
   const parts = manualContent.split('---');
-  const masterContent = parts.find(p => p.includes('## Master Agent Guide')) || '';
-  const operatorContent = parts.find(p => p.includes('## Operator Guide')) || '';
+  const masterContent = parts.find(p => p.includes('# Master Agent Guide')) || '';
+  const operatorContent = parts.find(p => p.includes('# Operator Guide')) || '';
 
   const FeatureItem = ({ icon: Icon, title, children }) => (
     <div className="flex gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 group">
@@ -47,7 +47,7 @@ export const TrainingManualView = () => {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button variant="outline" className="bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-2xl px-6" onClick={() => window.print()}>
+            <Button variant="outline" className="bg-white/5 border-white/10 text-white hover:bg-white/20 rounded-2xl px-6" onClick={() => window.print()}>
               <Download className="w-4 h-4 mr-2" /> Export PDF
             </Button>
           </div>
@@ -84,8 +84,9 @@ export const TrainingManualView = () => {
           <Card className="p-8 md:p-16 rounded-[2.5rem] shadow-2xl shadow-slate-200/60 border-white/50 bg-white/80 backdrop-blur-md">
             <article className="prose prose-slate max-w-none 
               prose-headings:tracking-tight prose-headings:font-black
-              prose-h2:text-3xl prose-h2:text-slate-900 prose-h2:mt-16 prose-h2:mb-8 prose-h2:flex prose-h2:items-center prose-h2:gap-3
-              prose-h3:text-xl prose-h3:text-blue-600 prose-h3:mt-10 prose-h3:mb-4
+              prose-h1:text-4xl prose-h1:text-slate-900 prose-h1:mb-8 prose-h1:pb-4 prose-h1:border-b-2 prose-h1:border-slate-100
+              prose-h2:text-2xl prose-h2:text-slate-800 prose-h2:mt-12 prose-h2:mb-6 prose-h2:flex prose-h2:items-center prose-h2:gap-3
+              prose-h3:text-lg prose-h3:text-blue-600 prose-h3:mt-8 prose-h3:mb-4
               prose-p:text-slate-600 prose-p:text-lg prose-p:leading-relaxed
               prose-strong:text-slate-900 prose-strong:font-bold
               prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:bg-blue-50 prose-blockquote:p-6 prose-blockquote:rounded-2xl prose-blockquote:not-italic prose-blockquote:text-blue-900 prose-blockquote:font-medium
@@ -94,6 +95,7 @@ export const TrainingManualView = () => {
               prose-table:border-collapse prose-table:w-full prose-table:rounded-2xl prose-table:overflow-hidden
               prose-th:bg-slate-50 prose-th:p-4 prose-th:text-slate-900 prose-th:font-black prose-th:uppercase prose-th:text-xs prose-th:tracking-widest
               prose-td:p-4 prose-td:border-b prose-td:border-slate-100
+              prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-a:font-bold
             ">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {activeTab === 'master' ? masterContent : operatorContent}
