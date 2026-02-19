@@ -35,6 +35,7 @@ export const Dashboard = ({ user, onLogout }) => {
   const canManageOperators = hasPermission(user, PERMISSIONS.MANAGE_OPERATORS);
   const canViewLiquidity = hasPermission(user, PERMISSIONS.VIEW_LIQUIDITY) || hasPermission(user, PERMISSIONS.MANAGE_LIQUIDITY);
   const canResetSystem = hasPermission(user, PERMISSIONS.RESET_SYSTEM);
+  const canViewDashboard = hasPermission(user, PERMISSIONS.VIEW_DASHBOARD);
 
   const {
     agents,
@@ -62,7 +63,7 @@ export const Dashboard = ({ user, onLogout }) => {
     createAdjustment
   } = useFloatData(rootId);
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(canViewDashboard ? 'dashboard' : 'agents');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('issue');
@@ -419,7 +420,7 @@ Served by: ${user.username}`;
           </div>
           <div className="space-y-1.5 p-2 md:p-0">
             {[
-              { id: 'dashboard', label: 'Dashboard', icon: Wallet },
+              ...(canViewDashboard ? [{ id: 'dashboard', label: 'Dashboard', icon: Wallet }] : []),
               { id: 'reports', label: 'Reports', icon: History },
               ...(canViewLiquidity ? [{ id: 'liquidity', label: 'Liquidity', icon: Banknote }] : []),
               { id: 'agents', label: 'Manage Agents', icon: Users },
@@ -452,7 +453,7 @@ Served by: ${user.username}`;
         </aside>
 
         <main className="flex-1 min-w-0">
-          {activeTab === 'dashboard' && <DashboardView stats={stats} formatCurrency={formatCurrency} activeBalance={activeBalance} openingBalance={currentLiquidity.openingBalance} />}
+          {activeTab === 'dashboard' && canViewDashboard && <DashboardView stats={stats} formatCurrency={formatCurrency} activeBalance={activeBalance} openingBalance={currentLiquidity.openingBalance} user={user} />}
           {activeTab === 'reports' && (
                         <ReportView
                           agents={agents}

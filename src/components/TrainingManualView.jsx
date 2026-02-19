@@ -17,7 +17,8 @@ import {
   Save,
   X,
   Type,
-  Palette
+  Palette,
+  RefreshCw
 } from 'lucide-react';
 import { hasPermission, PERMISSIONS } from '../constants/permissions';
 import defaultManualContent from '../../TRAINING_MANUAL.md?raw';
@@ -46,33 +47,39 @@ export const TrainingManualView = ({ user, rootId }) => {
   const canManageManual = hasPermission(user, PERMISSIONS.MANAGE_MANUAL);
 
   // Split content into Master and Operator sections manually
-  // Using a more robust regex for section splitting
-  const masterContent = content.split(/# Operator Guide/)[0].replace(/# Master Agent Guide/, '# Master Agent Guide') || '';
-  const operatorContent = '# Operator Guide' + (content.split(/# Operator Guide/)[1] || '');
+  const sections = content.split('---');
+  const masterContent = sections.find(s => s.includes('# Master Agent Guide')) || '';
+  const operatorContent = sections.find(s => s.includes('# Operator Guide')) || '';
   
-  const currentContent = activeTab === 'master' ? masterContent : operatorContent;
+  const currentContent = activeTab === 'master' ? masterContent.trim() : operatorContent.trim();
 
   // Extract TOC dynamically from current content
   useEffect(() => {
-    const lines = currentContent.split('\n');
-    const headings = lines
+    const headings = currentContent.split('\n')
       .filter(line => line.trim().startsWith('## '))
       .map(line => {
         const text = line.replace('## ', '').trim();
-        const id = text
-          .toLowerCase()
-          .replace(/[^\w\s-]/g, '')
-          .replace(/\s+/g, '-')
-          .trim();
+        const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').trim();
         return { text, id };
       });
     setToc(headings);
-  }, [currentContent]);
+  }, [currentContent, activeTab]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeTab]);
 
   const handleSave = () => {
     setContent(editBuffer);
     localStorage.setItem(`float_manual_content_${rootId}`, editBuffer);
-    localStorage.setItem(`float_manual_styles_${rootId}`, JSON.stringify(styleSettings));
+    setIsEditing(false);
+  };
+
+  const handleReset = () => {
+    if (!confirm('Reset manual to original default content? All your edits will be lost.')) return;
+    setContent(defaultManualContent);
+    setEditBuffer(defaultManualContent);
+    localStorage.removeItem(`float_manual_content_${rootId}`);
     setIsEditing(false);
   };
 
@@ -204,6 +211,7 @@ export const TrainingManualView = ({ user, rootId }) => {
               </div>
             </div>
             <div className="flex gap-2">
+              <Button variant="danger" onClick={handleReset} icon={RefreshCw}>Reset to Default</Button>
               <Button variant="secondary" onClick={() => setIsEditing(false)} icon={X}>Cancel</Button>
               <Button variant="primary" onClick={handleSave} icon={Save}>Save All Changes</Button>
             </div>

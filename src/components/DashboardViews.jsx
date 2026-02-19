@@ -104,102 +104,116 @@ export const LiquidityView = ({
   );
 };
 
-export const DashboardView = ({ stats, formatCurrency, activeBalance, openingBalance }) => (
-  <div className="space-y-6 pb-20">
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-      <Card className="bg-slate-800 text-white border-none shadow-indigo-100/50 shadow-lg">
-        <div className="p-5">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Day Opening</p>
-              <h2 className="text-2xl font-bold text-blue-300">{formatCurrency(openingBalance)}</h2>
-            </div>
-            <div className="p-2 bg-slate-700/50 rounded-xl">
-              <RefreshCw className="w-5 h-5 text-blue-300" />
-            </div>
-          </div>
-        </div>
-      </Card>
-      
-      <Card className="bg-gradient-to-br from-blue-600 to-blue-800 text-white border-none shadow-blue-200 shadow-lg">
-        <div className="p-5">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-blue-100 text-xs font-bold uppercase tracking-wider mb-1">Issued Today</p>
-              <h2 className="text-2xl font-bold">{formatCurrency(stats.issuedToday)}</h2>
-            </div>
-            <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-              <ArrowUpCircle className="w-5 h-5 text-white" />
-            </div>
-          </div>
-        </div>
-      </Card>
+export const DashboardView = ({ stats, formatCurrency, activeBalance, openingBalance, user }) => {
+  const canViewIssued = hasPermission(user, PERMISSIONS.VIEW_ISSUED_TODAY);
+  const canViewRepaid = hasPermission(user, PERMISSIONS.VIEW_REPAID_TODAY);
+  const canViewDebt = hasPermission(user, PERMISSIONS.VIEW_TEAM_DEBT);
 
-      <Card className="bg-white border-emerald-100 shadow-emerald-50 shadow-lg">
-        <div className="p-5">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Repaid Today</p>
-              <h2 className="text-2xl font-bold text-emerald-600">{formatCurrency(stats.returnedToday)}</h2>
-            </div>
-            <div className="p-2 bg-emerald-100 rounded-xl">
-              <ArrowDownCircle className="w-5 h-5 text-emerald-600" />
+  return (
+    <div className="space-y-6 pb-20">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <Card className="bg-slate-800 text-white border-none shadow-indigo-100/50 shadow-lg">
+          <div className="p-5">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Day Opening</p>
+                <h2 className="text-2xl font-bold text-blue-300">{formatCurrency(openingBalance)}</h2>
+              </div>
+              <div className="p-2 bg-slate-700/50 rounded-xl">
+                <RefreshCw className="w-5 h-5 text-blue-300" />
+              </div>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+        
+        {canViewIssued && (
+          <Card className="bg-gradient-to-br from-blue-600 to-blue-800 text-white border-none shadow-blue-200 shadow-lg">
+            <div className="p-5">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-blue-100 text-xs font-bold uppercase tracking-wider mb-1">Issued Today</p>
+                  <h2 className="text-2xl font-bold">{formatCurrency(stats.issuedToday)}</h2>
+                </div>
+                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <ArrowUpCircle className="w-5 h-5 text-white" />
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
-      <Card className="bg-white border-blue-100 shadow-blue-50 shadow-lg">
-        <div className="p-5">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Actual Balance</p>
-              <h2 className="text-2xl font-bold text-blue-600">{formatCurrency(activeBalance)}</h2>
+        {canViewRepaid && (
+          <Card className="bg-white border-emerald-100 shadow-emerald-50 shadow-lg">
+            <div className="p-5">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Repaid Today</p>
+                  <h2 className="text-2xl font-bold text-emerald-600">{formatCurrency(stats.returnedToday)}</h2>
+                </div>
+                <div className="p-2 bg-emerald-100 rounded-xl">
+                  <ArrowDownCircle className="w-5 h-5 text-emerald-600" />
+                </div>
+              </div>
             </div>
-            <div className="p-2 bg-blue-50 rounded-xl">
-              <Banknote className="w-5 h-5 text-blue-600" />
-            </div>
-          </div>
-        </div>
-      </Card>
+          </Card>
+        )}
 
-      <Card className="bg-white border-amber-100 shadow-amber-50 shadow-lg">
-        <div className="p-5">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Team Debt</p>
-              <h2 className={`text-2xl font-bold ${stats.totalOutstanding > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                {formatCurrency(stats.totalOutstanding)}
-              </h2>
-            </div>
-            <div className="p-2 bg-amber-50 rounded-xl">
-              <Wallet className="w-5 h-5 text-amber-500" />
+        <Card className="bg-white border-blue-100 shadow-blue-50 shadow-lg">
+          <div className="p-5">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Actual Balance</p>
+                <h2 className="text-2xl font-bold text-blue-600">{formatCurrency(activeBalance)}</h2>
+              </div>
+              <div className="p-2 bg-blue-50 rounded-xl">
+                <Banknote className="w-5 h-5 text-blue-600" />
+              </div>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+
+        {canViewDebt && (
+          <Card className="bg-white border-amber-100 shadow-amber-50 shadow-lg">
+            <div className="p-5">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Team Debt</p>
+                  <h2 className={`text-2xl font-bold ${stats.totalOutstanding > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                    {formatCurrency(stats.totalOutstanding)}
+                  </h2>
+                </div>
+                <div className="p-2 bg-amber-50 rounded-xl">
+                  <Wallet className="w-5 h-5 text-amber-500" />
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+      </div>
+
+      {(canViewIssued && canViewDebt) && (
+        <Card className="bg-blue-900 text-white border-none p-6 md:p-8 shadow-2xl shadow-blue-200 overflow-hidden relative group">
+           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Scale className="w-32 h-32 -mr-8 -mt-8 rotate-12" />
+           </div>
+           <div className="flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
+              <div className="text-center md:text-left">
+                 <p className="text-blue-300 text-sm font-bold uppercase tracking-[0.2em] mb-2">Total Operational Liquidity</p>
+                 <h2 className="text-4xl md:text-5xl font-black">{formatCurrency(activeBalance + stats.totalOutstanding)}</h2>
+              </div>
+              <div className="text-center md:text-right">
+                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full mb-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
+                    <p className="text-sm font-bold tracking-tight">System Reconciled</p>
+                 </div>
+                 <p className="text-blue-200/60 text-xs italic">Combined Capital: Actual Balance + Outstanding Debt</p>
+              </div>
+           </div>
+        </Card>
+      )}
     </div>
-
-    <Card className="bg-blue-900 text-white border-none p-6 md:p-8 shadow-2xl shadow-blue-200 overflow-hidden relative group">
-       <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-          <Scale className="w-32 h-32 -mr-8 -mt-8 rotate-12" />
-       </div>
-       <div className="flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
-          <div className="text-center md:text-left">
-             <p className="text-blue-300 text-sm font-bold uppercase tracking-[0.2em] mb-2">Total Operational Liquidity</p>
-             <h2 className="text-4xl md:text-5xl font-black">{formatCurrency(activeBalance + stats.totalOutstanding)}</h2>
-          </div>
-          <div className="text-center md:text-right">
-             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full mb-2">
-                <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
-                <p className="text-sm font-bold tracking-tight">System Reconciled</p>
-             </div>
-             <p className="text-blue-200/60 text-xs italic">Combined Capital: Active Balance + Outstanding Debt</p>
-          </div>
-       </div>
-    </Card>
-  </div>
-);
+  );
+};
 
 export const AgentsView = ({ agents, agentBalances, openModal, fileInputRef, handleFileUpload, downloadTemplate, formatCurrency }) => (
   <div className="space-y-6 pb-20">

@@ -38,7 +38,7 @@ Delegate daily tasks to your staff using the **"Operators"** tab. The system use
     *   *Managers* can assign all permissions **except** for `RESET_SYSTEM`.
     *   Staff cannot edit or delete the Master Agent account or their own account.
 
-#### Key Permissions Explained
+### Key Permissions Explained
 
 | Permission | Description |
 | :--- | :--- |
@@ -49,6 +49,8 @@ Delegate daily tasks to your staff using the **"Operators"** tab. The system use
 | **DELETE_TRANSACTION** | Required to remove records from history (Master only by default). |
 | **MANAGE_MANUAL** | Allows editing this manual's content and visual theme. |
 | **RESET_SYSTEM** | High-level access to wipe all local data from the device. |
+| **VIEW_DASHBOARD** | Access to the main statistics dashboard view. |
+| **VIEW_TEAM_DEBT** | Visibility of the total outstanding debt across all agents. |
 
 ## 4. 🎨 Customizing the Experience
 Master Agents can customize the look and feel of the documentation via the `Customize Manual` button.
