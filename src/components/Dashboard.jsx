@@ -15,12 +15,14 @@ import {
   BookOpen,
   Globe as GlobeIcon,
   ShieldCheck,
-  Eye
+  Eye,
+  Settings
 } from 'lucide-react';
 import { Button, Badge, Input } from './common';
 import { DashboardView, AgentsView, ReportView, OperatorsView, LiquidityView } from './DashboardViews';
 import { TrainingManualView } from './TrainingManualView';
 import { AdminDashboard } from './AdminDashboard';
+import { AccountSettings } from './AccountSettings';
 import { useFloatData } from '../hooks/useFloatData';
 import { formatCurrency } from '../utils/formatters';
 import { PROVIDERS } from '../constants';
@@ -28,7 +30,21 @@ import { hashPassword, generateId } from '../utils/crypto';
 import { hasPermission, PERMISSIONS, ROLE_PERMISSIONS } from '../constants/permissions';
 import { useLanguage } from '../context/LanguageContext';
 
-const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOpen, onLogout, t, language, toggleLanguage, isOwner, viewingAsMasterName }) => {
+const BusinessDashboard = ({ 
+  user, 
+  rootId, 
+  activeTab, 
+  setActiveTab, 
+  setSidebarOpen, 
+  onLogout, 
+  t, 
+  language, 
+  toggleLanguage, 
+  isOwner, 
+  viewingAsMasterName,
+  canResetSystem,
+  handleResetSystem
+}) => {
   const {
     agents,
     setAgents,
@@ -56,7 +72,6 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
   const isMaster = user.role === 'master' || !user.role;
   const canManageOperators = hasPermission(user, PERMISSIONS.MANAGE_OPERATORS);
   const canViewLiquidity = hasPermission(user, PERMISSIONS.VIEW_LIQUIDITY) || hasPermission(user, PERMISSIONS.MANAGE_LIQUIDITY);
-  const canResetSystem = hasPermission(user, PERMISSIONS.RESET_SYSTEM);
   const canViewDashboard = hasPermission(user, PERMISSIONS.VIEW_DASHBOARD);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -93,12 +108,6 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
       setOperators(filtered);
     }
   }, [canManageOperators, isOwner, rootId, user.id]);
-
-  const handleResetSystem = () => {
-    if (!confirm('⚠️ CRITICAL WARNING: This will permanently delete ALL data including agents, transactions, and operator accounts. Are you absolutely sure?')) return;
-    localStorage.clear();
-    window.location.reload();
-  };
 
   const openModal = (type, id = '') => {
     setModalType(type);
@@ -286,7 +295,7 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
 
       <div className="max-w-7xl mx-auto p-4 md:flex md:gap-6 lg:gap-8 mt-4">
         <aside className="hidden md:block sticky top-24 w-56 lg:w-64 h-fit self-start">
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 text-left">
             {[
               ...(isOwner ? [{ id: 'admin', label: 'Admin', icon: ShieldCheck }] : []),
               ...((canViewDashboard || rootId !== user.id) ? [{ id: 'dashboard', label: t('dashboard'), icon: Wallet }] : []),
@@ -295,6 +304,7 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
               { id: 'agents', label: t('manage_agents'), icon: Users },
               ...((canManageOperators || rootId !== user.id) ? [{ id: 'operators', label: t('operators'), icon: UserCog }] : []),
               { id: 'training', label: t('training_manual'), icon: BookOpen },
+              ...(rootId === user.id ? [{ id: 'account', label: 'Account', icon: Settings }] : []),
             ].map(item => (
               <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm'}`}>
                 <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-white' : 'text-slate-400 group-hover:text-blue-600'}`} /> {item.label}
@@ -324,11 +334,12 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
             <OperatorsView newOpName={newOpName} setNewOpName={setNewOpName} newOpPass={newOpPass} setNewOpPass={setNewOpPass} handleAddOperator={handleAddOperator} handleUpdateOperator={handleUpdateOperator} operators={operators} handleDeleteOperator={handleDeleteOperator} handleEditOperator={handleEditOperator} selectedPermissions={selectedPermissions} setSelectedPermissions={setSelectedPermissions} PERMISSIONS={PERMISSIONS} editingOperatorId={editingOperatorId} setEditingOperatorId={setEditingOperatorId} user={user} />
           )}
           {activeTab === 'training' && <TrainingManualView user={user} rootId={rootId} />}
+          {activeTab === 'account' && <AccountSettings user={user} />}
         </main>
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4 text-left">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
               <h3 className="text-xl font-bold text-slate-800">
@@ -412,7 +423,7 @@ const BusinessDashboard = ({ user, rootId, activeTab, setActiveTab, setSidebarOp
 };
 
 export const Dashboard = ({ user, onLogout }) => {
-  const { language, t } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const [viewingAsMasterId, setViewingAsMasterId] = useState(null);
   const [viewingAsMasterName, setViewingAsMasterName] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -421,12 +432,12 @@ export const Dashboard = ({ user, onLogout }) => {
   const isMaster = user.role === 'master' || !user.role;
   const rootId = isOwner && viewingAsMasterId ? viewingAsMasterId : (isMaster ? user.id : user.masterId);
   const canViewAdmin = hasPermission(user, PERMISSIONS.VIEW_ADMIN_DASHBOARD);
+  const canResetSystem = hasPermission(user, PERMISSIONS.RESET_SYSTEM);
 
   const [activeTab, setActiveTab] = useState(canViewAdmin ? 'admin' : 'dashboard');
 
   const toggleLanguage = () => {
-    // In a real app we might want to handle this globally, 
-    // but here we just pass it down if needed.
+    setLanguage(language === 'en' ? 'fr' : 'en');
   };
 
   const handleViewAsMaster = (masterId, masterName) => {
@@ -441,6 +452,12 @@ export const Dashboard = ({ user, onLogout }) => {
     setActiveTab('admin');
   };
 
+  const handleResetSystem = () => {
+    if (!confirm('⚠️ CRITICAL WARNING: This will permanently delete ALL data including agents, transactions, and operator accounts. Are you absolutely sure?')) return;
+    localStorage.clear();
+    window.location.reload();
+  };
+
   // Sync sidebar items for mobile
   const sidebarItems = [
     ...(isOwner ? [{ id: 'admin', label: 'Admin', icon: ShieldCheck }] : []),
@@ -450,6 +467,7 @@ export const Dashboard = ({ user, onLogout }) => {
     { id: 'agents', label: t('manage_agents'), icon: Users },
     ...((rootId !== user.id || isMaster) ? [{ id: 'operators', label: t('operators'), icon: UserCog }] : []),
     { id: 'training', label: t('training_manual'), icon: BookOpen },
+    ...(rootId === user.id ? [{ id: 'account', label: 'Account', icon: Settings }] : []),
   ];
 
   return (
@@ -461,12 +479,31 @@ export const Dashboard = ({ user, onLogout }) => {
             <span className="font-bold text-blue-900">Menu</span>
             <button onClick={() => setSidebarOpen(false)} className="p-2"><X className="w-6 h-6" /></button>
           </div>
-          <div className="p-4 space-y-2">
-            {sidebarItems.map(item => (
-              <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg font-semibold ${activeTab === item.id ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>
-                <item.icon className="w-5 h-5" /> {item.label}
+          <div className="p-4 flex flex-col h-[calc(100%-60px)] text-left">
+            <div className="space-y-2 flex-1">
+              {sidebarItems.map(item => (
+                <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-lg font-semibold ${activeTab === item.id ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>
+                  <item.icon className="w-5 h-5" /> {item.label}
+                </button>
+              ))}
+            </div>
+            
+            <div className="pt-4 border-t border-slate-100 space-y-2">
+              {canResetSystem && (
+                <button 
+                  onClick={() => { setSidebarOpen(false); handleResetSystem(); }} 
+                  className="w-full flex items-center gap-3 p-3 rounded-lg font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+                >
+                  <AlertTriangle className="w-5 h-5" /> {t('reset_system')}
+                </button>
+              )}
+              <button 
+                onClick={() => { setSidebarOpen(false); onLogout(); }} 
+                className="w-full flex items-center gap-3 p-3 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <LogOut className="w-5 h-5" /> {t('logout')}
               </button>
-            ))}
+            </div>
           </div>
         </aside>
       </div>
@@ -491,17 +528,27 @@ export const Dashboard = ({ user, onLogout }) => {
                 <h1 className="font-bold text-lg">Platform Administration</h1>
               </div>
               <div className="flex items-center gap-4">
-                 <button onClick={onLogout} className="flex items-center gap-2 text-blue-200 hover:text-white transition-colors text-sm font-medium"><LogOut className="w-4 h-4" /> {t('logout')}</button>
-                 <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2"><Menu className="w-6 h-6" /></button>
+                 <button 
+                   onClick={toggleLanguage}
+                   className="flex items-center gap-2 text-blue-200 hover:text-white transition-colors text-sm font-bold bg-blue-800/50 px-3 py-1.5 rounded-lg border border-blue-700"
+                 >
+                   <GlobeIcon className="w-4 h-4" /> {language.toUpperCase()}
+                 </button>
+                 <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 hover:bg-blue-800 rounded"><Menu className="w-6 h-6" /></button>
+                 <button onClick={onLogout} className="hidden md:flex items-center gap-2 text-blue-200 hover:text-white transition-colors text-sm font-medium"><LogOut className="w-4 h-4" /> {t('logout')}</button>
               </div>
             </div>
           </nav>
-          <div className="max-w-7xl mx-auto p-4 md:flex md:gap-8 mt-4">
+          <div className="max-w-7xl mx-auto p-4 md:flex md:gap-8 mt-4 text-left">
              <aside className="hidden md:block w-64 shrink-0">
-                <button onClick={() => setActiveTab('admin')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold bg-blue-600 text-white shadow-lg shadow-blue-200"><ShieldCheck className="w-5 h-5" /> Admin</button>
+                <div className="space-y-1.5">
+                  <button onClick={() => setActiveTab('admin')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === 'admin' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-white'}`}><ShieldCheck className="w-5 h-5" /> Admin</button>
+                  <button onClick={() => setActiveTab('account')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === 'account' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-white'}`}><Settings className="w-5 h-5" /> Account</button>
+                </div>
              </aside>
              <main className="flex-1">
-                <AdminDashboard onViewMaster={handleViewAsMaster} />
+                {activeTab === 'admin' && <AdminDashboard onViewMaster={handleViewAsMaster} />}
+                {activeTab === 'account' && <AccountSettings user={user} />}
              </main>
           </div>
         </>
@@ -520,6 +567,8 @@ export const Dashboard = ({ user, onLogout }) => {
           toggleLanguage={toggleLanguage}
           isOwner={isOwner}
           viewingAsMasterName={viewingAsMasterName}
+          canResetSystem={canResetSystem}
+          handleResetSystem={handleResetSystem}
         />
       )}
     </div>

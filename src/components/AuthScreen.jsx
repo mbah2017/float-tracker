@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { Banknote, Building2, Lock, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
+import { Banknote, Building2, Lock, AlertCircle, Loader2, ShieldCheck, Globe as GlobeIcon } from 'lucide-react';
 import { Input, Button } from './common';
 import { hashPassword, generateId } from '../utils/crypto';
 import { useLanguage } from '../context/LanguageContext';
 
 export const AuthScreen = ({ onLogin }) => {
-  const { t } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const [isRegistering, setIsRegistering] = useState(false);
   const [formData, setFormData] = useState({ username: '', password: '', businessName: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'fr' : 'en');
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -86,7 +90,13 @@ export const AuthScreen = ({ onLogin }) => {
   const isFirstUser = usersCount === 0;
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans text-slate-900">
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 font-sans text-slate-900">
+      <button 
+        onClick={toggleLanguage}
+        className="absolute top-4 right-4 flex items-center gap-2 text-blue-900 hover:text-blue-700 transition-colors text-sm font-bold bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm"
+      >
+        <GlobeIcon className="w-4 h-4" /> {language.toUpperCase()}
+      </button>
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-300">
         <div className="bg-blue-900 p-8 text-center relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
